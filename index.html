@@ -38,16 +38,16 @@ html.app #app-install{display:none!important}</style>
 })();
 </script>
 <script>
-/* 국제택배 요금 비교 (미국 ⇄ 한국) — web app 1.4.3 · standalone build of the HomeBoard Delivery → Send panel.
+/* 국제택배 요금 비교 (미국 ⇄ 한국) — web app 1.4.4 · standalone build of the HomeBoard Delivery → Send panel.
    All rates are in this file (no server). Box/inputs and your own quotes are kept in this browser only (localStorage). */
 ;(function () {
   'use strict';
-  if (window.__dtSend143) return;
-  window.__dtSend143 = true;
+  if (window.__dtSend144) return;
+  window.__dtSend144 = true;
   try { if (window.top !== window) return; } catch (e) { return; }
   if (location.port === '8775' || /[?&](embed|standalone)=1/.test(location.search)) return;
 
-  const VER = '1.4.3';
+  const VER = '1.4.4';
   const CHECKED = '2026-11-25';
   const STALE_DAYS = 90, QUOTE_DAYS = 30;
   const KG = 0.45359237, CM = 2.54;
@@ -1263,8 +1263,19 @@ html.app #app-install{display:none!important}</style>
   .dts-opt:active{background:#1a2c3e}
   small.dts-cv{display:inline;font-size:.78em;color:#7f9bb1;font-weight:500;margin-left:3px;white-space:nowrap}
   small.dts-cv::before{content:'('}small.dts-cv::after{content:')'}
-  .dts-val small.alt{display:block;font-size:12px;line-height:12px;margin:0;color:#6e879b;font-weight:500}
-  .dts-val{line-height:30px!important;padding-top:2px}
+  .dts-val small.alt{display:inline;font-size:14px;margin-left:10px;color:#6e879b;font-weight:500}
+  .dts-szrow{display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px;align-items:start}
+  .dts-szrow .dts-lab{align-self:start;padding-top:16px}
+  .dts-sizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .dts-chip.dts-sz{border-radius:10px;padding:6px 8px;text-align:center;min-height:50px;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0}
+  .dts-chip.dts-sz b{font-size:14px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dts-chip.dts-sz small{font-size:12px;line-height:1.15;color:#8fb3cc;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dts-chip.dts-sz.on small{color:#cfe6f7}
+  .dts-chip.dts-sz.best{border-color:#c99a3a;background:#2a2412}
+  .dts-chip.dts-sz.best b{color:#f2c766}
+  .dts-chip.dts-sz.best.on{background:#4a3a14;border-color:#f2b84b}
+  .dts-chip.dts-sz.off{cursor:default;opacity:.7}
+  @media (max-width:720px){.dts-szrow{grid-template-columns:1fr}.dts-szrow .dts-lab{padding-top:0}.dts-chip.dts-sz{padding:6px 5px}.dts-chip.dts-sz small{white-space:normal;font-size:11.5px}}
   .dts-best{margin:10px 0 8px}
   @media (max-width:720px),(max-height:1000px){
     #dts-send{overflow:auto!important;display:block}
@@ -1352,6 +1363,27 @@ html.app #app-install{display:none!important}</style>
     return g.join('');
   }
 
+
+  // ---- 가성비 최적 박스 (1.4.4): for the current weight, the largest common box that is still billed by actual weight under
+  // the standard rule of the current direction (미국→한국: in³÷166, 1 lb 올림 · 한국→미국: cm³÷6,000, 0.5 kg 올림) — the most space
+  // for the same price. Services without volumetric weight (USPS 국제·선편소포) cost the same at any size within their limits.
+  const BV_US = [[8, 6, 4], [9, 6, 4], [10, 8, 4], [10, 8, 6], [12, 10, 6], [12, 12, 6], [14, 10, 5], [12, 12, 8], [14, 12, 8], [15, 12, 10],
+    [16, 12, 12], [18, 14, 10], [18, 14, 12], [18, 18, 12], [18, 18, 16], [20, 20, 15], [20, 20, 18], [20, 20, 19]];
+  const BV_KR = [[20, 15, 10], [22, 19, 9], [25, 20, 15], [27, 18, 15], [30, 20, 20], [30, 25, 20], [34, 25, 21], [35, 30, 25], [40, 30, 25],
+    [41, 31, 28], [40, 30, 30], [45, 35, 30], [48, 38, 34], [50, 40, 35], [50, 40, 40], [52, 48, 40], [55, 45, 40], [60, 45, 40], [60, 50, 40], [60, 50, 50]];
+  function bestValueBox() {
+    if (isKR()) {
+      const kg = st.lb * KG, bill = Math.max(0.5, Math.ceil(kg / 0.5 - 1e-9) * 0.5), V = bill * 6000;
+      const ok = BV_KR.filter(d => d[0] * d[1] * d[2] <= V).sort((a, c) => c[0] * c[1] * c[2] - a[0] * a[1] * a[2]);
+      if (!ok.length) return null;
+      const d = ok[0], k = K_BOX.find(x => x[1] === d[0] && x[2] === d[1] && x[3] === d[2]);
+      return { L: d[0] / CM, W: d[1] / CM, H: d[2] / CM, lbl: `${kgF(bill)} kg` };
+    }
+    const bill = Math.max(1, Math.ceil(st.lb - 1e-9)), V = bill * 166;
+    const ok = BV_US.filter(d => d[0] * d[1] * d[2] <= V && d[0] + d[1] + d[2] <= 59).sort((a, c) => c[0] * c[1] * c[2] - a[0] * a[1] * a[2]);
+    if (!ok.length) return null;
+    return { L: ok[0][0], W: ok[0][1], H: ok[0][2], lbl: `${bill} lb` };
+  }
 
   // ------------------------------------------------------------------ render
   let root, last = { priced: [], cond: [], open: [] };
@@ -1486,6 +1518,21 @@ html.app #app-install{display:none!important}</style>
       : [['신발상자 14×10×5″', 14, 10, 5], ['소형 12×10×6″', 12, 10, 6], ['14×12×8″', 14, 12, 8], ['16×12×12″', 16, 12, 12], ['18×14×10″', 18, 14, 10], ['18×18×16″', 18, 18, 16]];
     const same = (a, b) => Math.abs(a - b) < 0.02;
     const usBoxes = [['USPS Small FR', 'small'], ['USPS Medium FR', 'medium'], ['USPS Large FR', 'large']];
+    const dimPair = (L, W, H) => {               // cm on the first, inch on the second, both on one line
+      const c = `${Math.round(L * CM)}×${Math.round(W * CM)}×${Math.round(H * CM)} cm`, i = `${nIn(L)}×${nIn(W)}×${nIn(H)}″`;
+      return unitNow() === 'in' ? `${i} · ${c}` : `${c} · ${i}`;
+    };
+    const chip = (on, attr, name, L, W, H, cls) => `<span class="dts-chip dts-sz ${cls || ''} ${on ? 'on' : ''}" ${attr}><b>${esc(name)}</b><small>${dimPair(L, W, H)}</small></span>`;
+    function sizeChips() {
+      const v = bestValueBox();
+      const best = v ? chip(!st.frBox && same(st.L, v.L) && same(st.W, v.W) && same(st.H, v.H), `data-dts-preset="${[v.L, v.W, v.H].join(',')}"`, `💰 가성비 최적 ${v.lbl}`, v.L, v.W, v.H, 'best')
+        : `<span class="dts-chip dts-sz best off"><b>💰 가성비 최적</b><small>이 무게는 봉투·초소형</small></span>`;
+      const pre = (kr ? K_BOX.map(b => [`우체국 ${b[0]}`, b[1] / CM, b[2] / CM, b[3] / CM])
+        : [['신발상자', 14, 10, 5], ['소형', 12, 10, 6], ['중소형', 14, 12, 8], ['중형', 16, 12, 12], ['중대형', 18, 14, 10], ['대형', 18, 18, 16]])
+        .map(p => chip(!st.frBox && same(st.L, p[1]) && same(st.W, p[2]) && same(st.H, p[3]), `data-dts-preset="${p.slice(1).join(',')}"`, p[0], p[1], p[2], p[3]));
+      const fr = kr ? [] : usBoxes.map(([n, k]) => chip(st.frBox === k, `data-dts-frbox="${k}"`, n, ...FR_BOX[k].outer));
+      return [best].concat(pre, fr).join('');
+    }
     const scen = [['패딩·이불 (크고 가벼움)', 18, 18, 16, 4], ['책·소스 (작고 무거움)', 11, 8.5, 5.5, 18], ['선물 상자', 16, 12, 12, 5], ['옷 한 박스', 18, 14, 10, 15], ['귀국 짐', 18, 18, 16, 30], ['서류 봉투', 12, 9, 0.5, 0.25]];
     const vals = [50, 100, 150, 200, 500];
     const ws = warnings();
@@ -1515,8 +1562,7 @@ html.app #app-install{display:none!important}</style>
                 <div class="dts-val" data-dts-key="${k}"><!--nocv-->${vin(st[k])}<small>${u ? 'in' : 'cm'}</small><small class="alt">${u ? r1(st[k] * CM).replace(/\.0$/, '') + ' cm' : nIn(st[k]) + ' in'}</small><!--/nocv--></div><button class="dts-step" data-dts-step="${k}" data-d="1">+</button></div>`).join('')}
             <div class="dts-row"><label>무게<small>Weight</small></label><button class="dts-step" data-dts-step="lb" data-d="-1">−</button>
               <div class="dts-val" data-dts-key="lb"><!--nocv-->${wv}<small>${u ? 'lb' : 'kg'}</small><small class="alt">${u ? kgs(st.lb * KG) + ' kg' : lbs(st.lb) + ' lb'}</small><!--/nocv--></div><button class="dts-step" data-dts-step="lb" data-d="1">+</button></div>
-            <div class="dts-seg"><span class="dts-sub dts-lab">크기</span>${sizes.map(p => `<span class="dts-chip ${!st.frBox && same(st.L, p[1]) && same(st.W, p[2]) && same(st.H, p[3]) ? 'on' : ''}" data-dts-preset="${p.slice(1).join(',')}">${esc(p[0])}</span>`).join('')}
-              ${kr ? '' : usBoxes.map(([n, k]) => `<span class="dts-chip ${st.frBox === k ? 'on' : ''}" data-dts-frbox="${k}">${n}</span>`).join('')}</div>
+            <div class="dts-szrow"><span class="dts-sub dts-lab">크기</span><div class="dts-sizes"><!--nocv-->${sizeChips()}<!--/nocv--></div></div>
             <div class="dts-seg"><span class="dts-sub dts-lab">상황</span>${scen.map(p => `<span class="dts-chip ${st.L === p[1] && st.W === p[2] && st.H === p[3] && st.lb === p[4] ? 'on' : ''}" data-dts-scen="${p.slice(1).join(',')}">${esc(p[0])}</span>`).join('')}</div>
             <div class="dts-seg" style="align-items:center"><span class="dts-sub dts-lab">물품가액</span>${vals.map(v => `<span class="dts-chip ${st.val === v ? 'on' : ''}" data-dts-val="${v}">${v === 500 ? '$400+' : '$' + v}</span>`).join('')}</div>
             <div class="dts-seg" style="align-items:center"><span class="dts-sub dts-lab">추가</span>
