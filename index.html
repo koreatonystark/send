@@ -1,0 +1,2146 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e1823">
+<title>국제택배 요금 비교 · 미국 ⇄ 한국</title>
+<style>html,body{margin:0;height:100%;background:#0e1823}body{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+#dts-send{flex:1 1 0;min-height:0}</style>
+</head><body>
+<noscript>JavaScript가 필요합니다.</noscript>
+<script>
+/* 국제택배 요금 비교 (미국 ⇄ 한국) — web 1.4.3 · standalone build of the HomeBoard Delivery → Send panel.
+   All rates are in this file (no server). Box/inputs and your own quotes are kept in this browser only (localStorage). */
+;(function () {
+  'use strict';
+  if (window.__dtSend143) return;
+  window.__dtSend143 = true;
+  try { if (window.top !== window) return; } catch (e) { return; }
+  if (location.port === '8775' || /[?&](embed|standalone)=1/.test(location.search)) return;
+
+  const VER = '1.4.3';
+  const CHECKED = '2026-11-25';
+  const STALE_DAYS = 90, QUOTE_DAYS = 30;
+  const KG = 0.45359237, CM = 2.54;
+
+  // ------------------------------------------------------------------ rate data (verified)
+  const USPS = {
+    pmi: [68.50, 71.90, 76.50, 82.25, 87.90, 93.75, 99.60, 105.45, 111.25, 117.15, 122.85, 128.80, 134.65, 140.50,
+      146.35, 152.05, 158.00, 163.80, 169.65, 175.65, 176.45, 177.25, 178.00, 182.10, 186.60, 190.65, 194.45, 198.65,
+      202.90, 206.45, 210.55, 214.35, 217.65, 221.85, 226.45, 231.00, 235.55, 240.15, 244.70, 249.20, 253.80, 258.35,
+      262.95, 267.50],
+    pmiC: [66.30, 69.58, 74.01, 79.58, 85.06, 90.71, 96.35, 102.05, 107.65, 113.37, 118.88, 124.63, 130.29, 135.93,
+      141.61, 147.13, 152.90, 158.51, 164.15, 169.98],
+    pmeiHalf: 91.10,
+    pmei: [93.20, 96.00, 99.70, 103.40, 107.85, 113.50, 119.45, 125.20, 130.90, 136.90, 142.65, 148.55, 154.30, 160.10,
+      165.95, 171.85, 177.60, 183.50, 189.45, 195.35],
+    fcpis: [[8, 23.05, 21.94], [16, 32.05, 29.90], [32, 35.15, 33.49], [48, 51.65, 48.19], [64, 67.30, 55.44]],
+    fcmiLetter: [[1, 1.75], [2, 3.50], [3, 5.25], [3.5, 5.75]],
+    fcmiFlat: [[1, 3.30], [2, 4.65], [3, 6.05], [4, 7.35], [5, 8.75], [6, 10.15], [7, 11.55], [8, 12.95], [12, 15.75], [15.994, 18.55]],
+    fr: { env: 49.75, small: 51.40, medium: 96.40, large: 121.30, pmeiEnv: 79.80 },
+    // USPS Ground Advantage Retail, Zone 8 (Bayside → Gardena, CA), 1–30 lb — for mail-in to an LA forwarder
+    ga8: [13.65, 19.80, 23.15, 25.65, 27.45, 29.75, 32.00, 34.55, 37.10, 40.85, 46.05, 49.25, 53.75, 57.65, 60.10, 62.65,
+      65.60, 68.60, 70.75, 72.15, 81.25, 87.30, 91.80, 95.50, 99.10, 107.50, 111.15, 114.30, 117.35, 120.30]
+  };
+  // Pirate Ship 공개 요금 계산기 실측 (11360 Bayside → South Korea, Box, 2026-11-25) — 상업가·할인가
+  const PS = {
+    ser: [[0.5, 14.99], [1, 18.99], [2, 22.99], [3, 29.99], [4, 33.99], [5, 56.99], [6, 59.99], [7, 63.99], [8, 67.99], [9, 71.99], [10, 74.99], [11, 77.99], [12, 80.99], [13, 83.99], [14, 86.99], [15, 89.99], [16, 92.99], [17, 95.99], [18, 98.99], [19, 101.99], [20, 104.99]],
+    upsE: [43.34, 47.94, 52.58, 57.18, 61.8, 66.27, 70.7, 75.13, 79.53, 83.95, 88.35, 92.84, 97.39, 101.94, 106.51, 111.05, 115.62, 120.17, 124.73, 129.28, 142.12, 145.77, 149.43, 153.04, 156.7, 160.36, 163.98, 167.64, 171.28, 174.91, 178.56, 182.21, 185.84, 189.5, 193.13, 196.77, 200.43, 204.07, 207.71, 211.36, 214.99, 218.63, 222.28, 225.92, 229.58, 233.2, 236.85, 240.51, 244.14, 247.79, 254.75, 255.07, 262.04, 262.36, 269.33, 292.65, 299.61, 299.93, 306.9, 307.22, 314.18, 314.5, 321.46, 321.78, 328.76, 329.08, 336.04, 336.36, 343.34, 343.66],
+    upsS: [55.43, 55.43, 55.43, 60.42, 65.3, 70.07, 74.83, 79.59, 84.34, 89.1, 93.98, 98.9, 103.81, 108.71, 113.64, 118.55, 123.47, 128.38, 133.29, 138.22, 146.33, 150.93, 155.56, 160.15, 164.75, 169.36, 173.97, 178.58, 183.17, 187.79, 192.39, 196.99, 201.61, 206.2, 210.81, 215.43, 220.02, 224.63, 229.22, 233.84, 238.45, 243.04, 247.66, 252.26, 256.86, 261.48, 266.07, 270.68, 275.29, 279.89, 288.77, 289.09, 297.99, 298.31, 307.21, 330.53, 339.41, 339.73, 348.62, 348.94, 357.85, 358.17, 367.04, 367.36, 376.26, 376.58, 385.46, 385.78, 394.68, 395.0],
+    upsX: [60.38, 60.38, 60.38, 65.26, 70.02, 74.78, 79.53, 84.29, 89.05, 93.94, 101.3, 106.2, 111.11, 116.03, 120.95, 125.87, 130.78, 135.69, 140.61, 145.53, 153.65, 158.25, 162.87, 167.46, 172.07, 179.11, 183.72, 188.32, 192.91, 197.54, 202.14, 206.74, 211.35, 215.96, 220.56, 225.17, 229.77, 234.37, 238.98, 243.59, 248.19, 252.79, 257.41, 262.02, 266.61, 271.22, 275.82, 280.43, 285.05, 289.64, 298.52, 298.84, 307.75, 308.07, 316.96, 340.28, 349.16, 349.48, 358.37, 358.69, 367.6, 367.92, 376.8, 377.12, 386.24, 386.56, 395.71, 396.03, 405.17, 405.49],
+    pmiC: [66.3, 69.58, 74.01, 79.58, 85.06, 90.71, 96.35, 102.05, 107.65, 113.37, 118.88, 124.63, 130.29, 135.93, 141.61, 147.13, 152.9, 158.51, 164.15, 169.98, 170.74, 171.5, 172.25, 176.22, 180.55, 184.48, 188.17, 192.2, 196.3, 199.75, 203.73, 207.42, 210.58, 214.44, 218.14, 221.43, 224.63, 227.78, 231.21, 235.46, 239.79, 244.09, 248.41, 252.72],
+    pmiR: [68.5, 71.9, 76.5, 82.25, 87.9, 93.75, 99.6, 105.45, 111.25, 117.15, 122.85, 128.8, 134.65, 140.5, 146.35, 152.05, 158.0, 163.8, 169.65, 175.65, 176.45, 177.25, 178.0, 182.1, 186.6, 190.65, 194.45, 198.65, 202.9, 206.45, 210.55, 214.35, 217.65, 221.85, 226.45, 231.0, 235.55, 240.15, 244.7, 249.2, 253.8, 258.35, 262.95, 267.5],
+    pmeiC: [87.26, 89.27, 91.95, 95.49, 99.05, 103.3, 108.74, 114.41, 119.93, 125.37, 131.15, 136.63, 142.3, 147.81, 153.36, 158.94, 164.62, 170.13, 175.78, 181.45, 187.1, 190.74, 195.04, 199.42, 203.06, 207.19, 211.14, 214.99, 219.24, 221.08, 225.76, 229.29, 232.55, 236.19, 239.33, 242.93, 246.65, 250.22, 254.7, 259.17, 263.67, 268.41, 272.92, 277.39, 281.88, 286.37, 290.85, 295.35, 299.83, 304.34, 308.82, 313.32, 317.8, 322.3, 326.77, 331.26, 335.76, 340.25, 344.76, 349.22, 354.14, 358.85, 363.69, 369.26, 373.05, 377.51, 383.27],
+    pmeiR: [91.1, 93.2, 96.0, 99.7, 103.4, 107.85, 113.5, 119.45, 125.2, 130.9, 136.9, 142.65, 148.55, 154.3, 160.1, 165.95, 171.85, 177.6, 183.5, 189.45, 195.35, 199.15, 203.6, 208.2, 212.0, 216.3, 220.45, 224.45, 228.9, 230.8, 235.7, 239.4, 242.8, 246.5, 249.85, 253.6, 257.5, 261.25, 265.9, 270.55, 275.25, 280.2, 284.95, 289.6, 294.3, 298.95, 303.65, 308.35, 313.0, 317.75, 322.4, 327.1, 331.8, 336.5, 341.15, 345.85, 350.55, 355.2, 359.95, 364.6, 369.7, 374.65, 379.7, 385.5, 389.45, 394.1, 400.15]
+  };
+  const SOPOYA = [20, 23, 26, 29, 32, 38, 41, 44, 47, 50, 54, 57, 60, 63, 66, 69, 72, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94, 96, 98, 100,
+    105, 107, 109, 111, 113, 115, 117, 119, 121, 123, 125, 127, 129, 131, 133, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166];
+  // USPS Flat Rate: inner (what must fit inside) and outer (when the user IS using that USPS box)
+  const FR_BOX = {
+    small: { n: 'Small', inner: [8.625, 5.375, 1.625], outer: [8.6875, 5.4375, 1.75], max: 4, p: 51.40 },
+    medium: { n: 'Medium', inner: [11, 8.5, 5.5], inner2: [13.625, 11.875, 3.375], outer: [11.25, 8.75, 6], max: 20, p: 96.40 },
+    large: { n: 'Large', inner: [12, 12, 5.5], outer: [12.25, 12.25, 6], max: 20, p: 121.30 }
+  };
+
+  // ------------------------------------------------------------------ places (verified addresses)
+  const CALL = '방문·드롭 전 전화/카톡으로 당일 접수 가능 여부 확인';
+  const P = {
+    uspsBT: ['USPS Bay Terrace Post Office', '212-71 26th Ave, Bayside 11360', 'Bay Terrace Shopping Center 우체국 · Flat Rate 박스 무료', 'usps'],
+    uspsBS: ['USPS Bayside Post Office', '212-35 42nd Ave Ste 2, Bayside 11361 · 718-229-8571', 'LIRR Bayside역 맞은편 · 영업시간은 USPS Locator에서 확인', 'usps'],
+    sopoya: ['소포야 제휴 드롭오프 — Villa Pharmacy', '164 Northern Blvd, Great Neck 11021', '평일 9:00–17:00 · 주말 휴무 · 온라인 결제 후 드롭, 받는 곳 표기 "Sopoya / Villa Pharmacy Inc"', 'kr'],
+    sopoyaHQ: ['소포야 본사', '167th St, Flushing 11358 (상세 주소는 결제 후 안내)', '카카오톡 채널 상담 · 61 lb 이상 문의', 'kr'],
+    samsung: ['삼성택배 제휴 드롭오프 — Eco Interior & Flooring', '254-24 Northern Blvd, Little Neck 11362', 'NJ 본사(117 Grand Ave, Palisades Park · 201-315-9918) 직접 드롭 시 20% 할인', 'kr'],
+    cj: ['CJ택배 퀸즈 / Shipping And Delivery', '192-02 Northern Blvd, Flushing 11358 · 718-357-3534', 'FedEx Authorized ShipCenter 겸업 (UPS·DHL·USPS도 취급)', 'kr'],
+    hanjin: ['한진택배 — JOY HANJIN', '159-09 Northern Blvd, Flushing 11358 · 718-321-7900', '한진 공식 취급점 · 항공/해상 · 귀국이사', 'kr'],
+    asiana: ['한진택배 — ASIANA EXPRESS', '162-01 Northern Blvd, Flushing 11358 · 718-353-5800', '한진 공식 취급점 · UPS Authorized Shipping Outlet', 'kr'],
+    dk: ['DK Express (CJ 항공)', '35-28 154th St, Flushing 11354', 'FedEx Authorized ShipCenter "Dkexpress"', 'kr'],
+    lulu: ['룰루익스프레스 (Lulu New York)', '본사 227 Grand Ave Unit L6, Palisades Park, NJ 07650', '뉴욕·북부 NJ 무료 픽업 (10 lb 이상) · 카카오톡 상담', 'kr'],
+    kt: ['KT Express 본사 (LA)', '15630 S Figueroa St, Gardena, CA 90248 · +1 424 300 8545', '뉴욕 지점 없음 — 타주 고객은 밸리 지점(할인 FedEx 계정·픽업) 이용, 사전 문의', 'kr'],
+    dream: ['현대해운 드림백 미국센터 (CA)', '18300 S. Wilmington Ave, Unit 160, Rancho Dominguez, CA 90220 · 310-763-0001', 'dreambag.kr 신청·결제(UPS 포함) → 라벨 2장 부착 → 직원 있는 The UPS Store 드롭 (무인 접수처 불가)', 'kr'],
+    ssayo: ['싸요택배 본점 (NJ)', '122 John St, Hackensack, NJ 07601 · 201-397-8047', '월–금 10:00–17:00 · 접수번호 받고 드롭 · 타주는 UPS/USPS로 이 주소에 발송', 'kr'],
+    sth: ['Shipping To Home (CA)', '14056 Artesia Blvd, Cerritos, CA 90703', 'LA 출발 요금 — 뉴욕에서는 이 주소로 선배송 (접수 방법 사전 문의)', 'kr'],
+    nonstop: ['논스톱박스 (LA)', 'nonstopbox.com', 'LA 무료 픽업 · 타지역은 이메일로 받은 FedEx 라벨로 FedEx 매장 드롭', 'kr'],
+    fedexDR: ['FedEx OnSite — Duane Reade', '24-28 Bell Blvd, Bayside 11360', 'Bay Terrace · 라벨 붙인 FedEx 소포 드롭 (55 lb까지) · 토·일 운영', 'drop'],
+    bbs: ["Bb's Pack And Ship", '42-06A Bell Blvd, Bayside 11361', 'FedEx Authorized ShipCenter · 포장', 'drop'],
+    ups4461: ['The UPS Store #4461', '213-37 39th Ave, Bayside 11361 · 718-224-3262', 'Bell Blvd 코너 · 7일 영업 · UPS 국제 + USPS', 'drop'],
+    ups6819: ['The UPS Store #6819 (Baybridge)', '208-10 Cross Island Pkwy, Bayside 11360 · 718-819-8329', 'Ground/Air 마감 16:00', 'drop'],
+    upsFL: ['The UPS Store (Flushing·Bayside)', '26-05 Francis Lewis Blvd, Flushing 11358', 'UPS 국제 + USPS', 'drop'],
+    staples: ['Staples (UPS Alliance Shipping Partner)', '209-34 Northern Blvd, Bayside 11361 · 718-229-0138', 'UPS 라벨 드롭 마감 17:00 · 박스 구입', 'drop']
+  };
+
+  const CATS = [['all', '전체'], ['kr', '한인택배'], ['usps', 'USPS'], ['courier', '특송'], ['online', '온라인 라벨'], ['freight', '대형·이사']];
+  const KINDS = [['goods', '👕 의류·잡화·선물'], ['books', '📚 책·인쇄물'], ['food', '🍪 식품·화장품·영양제'], ['docs', '📄 서류·편지'], ['move', '🧳 귀국 이사짐']];
+
+  // ------------------------------------------------------------------ helpers
+  function fit(dims, box) {
+    const a = dims.slice().sort((x, y) => y - x), b = box.slice().sort((x, y) => y - x);
+    return a[0] <= b[0] + 0.01 && a[1] <= b[1] + 0.01 && a[2] <= b[2] + 0.01;
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const isKR = () => st.dir === 'kr';
+  const $m = v => isKR() ? '₩' + Math.round(v).toLocaleString('en-US') : '$' + (v >= 1000 ? Math.round(v).toLocaleString('en-US') : v.toFixed(Math.abs(v % 1) > 0.004 ? 2 : 0));
+  const r1 = v => (Math.round(v * 10) / 10).toFixed(1);
+  const kgs = v => v < 1 ? v.toFixed(2) : r1(v);
+  const lbs = v => v < 1 ? v.toFixed(2) : r1(v);
+  const nIn = v => r1(v).replace(/\.0$/, '');
+  // ---- unit companions: every lb/kg/oz/in/cm value gets the other system in small text (HTML text nodes only)
+  const cvf = v => v >= 10 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+  const RXU = /(\d+(?:\.\d+)?)(?:\s?[×x]\s?(\d+(?:\.\d+)?))?(?:\s?[×x]\s?(\d+(?:\.\d+)?))?\s?(lbs|lb|kg|cm|oz|″|in)(?![a-zA-Z³²])/g;
+  function convText(t) {
+    return t.replace(RXU, (m, a, b, c, u, off, str) => {
+      const near = str.slice(Math.max(0, off - 14), off) + '|' + str.slice(off + m.length, off + m.length + 14);
+      const nums = [a, b, c].filter(Boolean).map(Number);
+      let out;
+      if (u === 'lb' || u === 'lbs') { if (/kg/.test(near)) return m; out = nums.map(x => cvf(x * KG)).join('×') + ' kg'; }
+      else if (u === 'kg') { if (/lb/.test(near)) return m; out = nums.map(x => cvf(x / KG)).join('×') + ' lb'; }
+      else if (u === 'oz') { if (/\dg\b|kg|lb/.test(near)) return m; out = nums.map(x => cvf(x * 28.3495)).join('×') + ' g'; }
+      else if (u === 'cm') { if (/″|\bin\b/.test(near)) return m; out = nums.map(x => cvf(x / CM)).join('×') + '″'; }
+      else { if (/cm/.test(near)) return m; out = nums.map(x => cvf(x * CM)).join('×') + ' cm'; }
+      return m + `<small class="dts-cv">${out}</small>`;
+    });
+  }
+  const annotate = html => html.split(/(<svg[\s\S]*?<\/svg>|<!--nocv-->[\s\S]*?<!--\/nocv-->)/)
+    .map((seg, i) => i % 2 ? seg : seg.replace(/(^|>)([^<]+)/g, (m, a, t) => a + convText(t))).join('');
+  const dimStr = () => `${nIn(st.L)}×${nIn(st.W)}×${nIn(st.H)}″`;
+  const sig = () => [st.L, st.W, st.H, st.lb].map(v => Math.round(v * 100) / 100).join('x');
+  const today = () => new Date().toISOString().slice(0, 10);
+  const ageDays = d => Math.floor((Date.now() - Date.parse(d + 'T12:00:00')) / 864e5);
+
+  const st = { dir: 'us', unit: 'in', unitK: 'cm', L: 12, W: 10, H: 6, lb: 2.2, val: 100, kind: 'goods', pack: false, pickup: false, frBox: null, cat: 'all', sel: null, mounted: null };
+  let quotes = {};
+  try {
+    const s = JSON.parse(localStorage.getItem('dts-box') || 'null');
+    if (s && s.L) { Object.assign(st, s, { sel: null, mounted: null, dir: 'us' }); if (s.docs) st.kind = 'docs'; }
+    const q = JSON.parse(localStorage.getItem('dts-quotes') || '{}') || {};
+    for (const k in q) quotes[k] = Array.isArray(q[k]) ? q[k] : [Object.assign({ L: 0, W: 0, H: 0, lb: 0, inc: {} }, q[k])];   // 1.3.1 → list
+  } catch (e) { /* no storage */ }
+  function save() { try { localStorage.setItem('dts-box', JSON.stringify({ unit: st.unit, unitK: st.unitK, L: st.L, W: st.W, H: st.H, lb: st.lb, val: st.val, kind: st.kind, pack: st.pack, pickup: st.pickup, frBox: st.frBox, cat: st.cat })); } catch (e) { /* ignore */ } }
+  function saveQuotes() { try { localStorage.setItem('dts-quotes', JSON.stringify(quotes)); } catch (e) { /* ignore */ } }
+
+  // customs line for an option (channel: 'post' | 'express' | 'move')
+  function customs(ch) {
+    if (st.kind === 'docs') return '서류(Documents) — 물품이 아니면 보통 과세 대상이 아님. 세관신고서에 Documents로 표기.';
+    if (st.kind === 'move') return '귀국 이사물품 — 이사자(본인 1년 이상, 가족 동반 6개월 이상 해외 거주)가 쓰던 물품은 입국 후 6개월 이내 반입 시 이사물품 신고로 면세 가능. 새 물건·대량은 과세. 요건은 관세청(UNI-PASS) 확인.';
+    if (st.kind === 'food') return '식품·화장품·영양제·의약품은 목록통관 배제 → 수입신고, $150 이하 면세(미국발 $200 특례 없음). 영양제 6병, 의약품 처방전, 육가공품 금지.';
+    return ch === 'post'
+      ? '우편(USPS)은 $150 이하 자가사용·선물 면세 — 미국발 $200 특례는 특송 목록통관에만 적용.'
+      : '특송·한인택배 목록통관(의류·신발·잡화 등)은 미국발 $200 이하 면세. 초과 시 운임 포함 전체 금액에 관세+부가세.';
+  }
+  const PCCC = '수취인 휴대폰 번호 + 개인통관고유부호(P + 숫자 12자리, 2026년부터 유효기간제) 필수.';
+
+  // ------------------------------------------------------------------ option catalogue
+  // tier: 'pub' (published table) | 'cond' (published rate but intake/pre-shipping unconfirmed) | 'quote' (no table)
+  // price(c) → { p, note, warn?, retail?, box? } | { open: 'why' } | null (not applicable)
+  // adds(c)  → { adds: [[label, $]], unknown: [label] }
+  // USPS Ground Advantage Zone 8 retail to a California centre (for KT·Shipping To Home) — reference estimate
+  function preship(c, a, u) {
+    const v = c.dims[0] * c.dims[1] * c.dims[2], rd = c.dims.map(Math.ceil);
+    const gw = Math.max(1, Math.ceil(Math.max(c.act, v > 1728 ? rd[0] * rd[1] * rd[2] / 139 : 0) - 1e-9));
+    if (gw <= 30) a.push([`캘리포니아로 선배송 (USPS Ground Advantage ${gw} lb, Zone 8 참고)`, USPS.ga8[gw - 1]]); else u.push('캘리포니아 선배송 (30 lb 초과 요금 확인)');
+  }
+  const OPTS = [
+    {
+      id: 'sopoya', cat: 'kr', tier: 'pub', ch: 'express', name: '소포야 익스프레스', tag: 'Great Neck 드롭 · 공시 요금', div: 166, days: [5, 7], dayUnit: '일',
+      places: ['sopoya', 'sopoyaHQ'],
+      price(c) {
+        if (c.bill > 60) return { open: '61 lb 이상 — 카카오톡 문의 (온라인 계산 불가)' };
+        const p = SOPOYA[c.bill - 1];
+        const big = (c.dims[0] + c.dims[1] + c.dims[2]) * CM > 150 || c.dims[0] * CM > 100 || c.act * KG > 25;
+        return { p, warn: big ? '규격 초과 — 화물 전환·추가비' : '', note: `공시 요금 ${c.bill} lb = $${p} (통관·한국 내 CJ 배송 포함)` };
+      },
+      adds() { const a = [], u = []; if (st.pack) a.push(['포장 서비스', 10]); if (st.pickup) u.push('픽업비 (지역별 요금표 비공개)'); return { adds: a, unknown: u }; },
+      pros: ['요금표 공개 (1–60 lb) — 한인 택배 중 바로 계산 가능', '운임에 통관 + 한국 내 CJ대한통운 배송 포함', 'Great Neck 드롭오프가 베이사이드에서 가까움'],
+      cons: ['부피무게 ÷166 · 1 lb 단위 올림 (1.4 lb → 2 lb)', '세 변 합 150 cm · 한 변 1 m · 25 kg 초과는 화물 전환(추가비)', '관부가세·검사·반송비 별도', '실측이 입력과 다르면 차액 정산'],
+      how: ['sopoya.com에서 박스 크기·무게 입력 → 선결제 + 배송신청서', 'Villa Pharmacy(Great Neck) 평일 드롭 또는 픽업 예약', '실측 후 운송장 번호 발급'],
+      src: 'sopoya.com/prices (요금표·부피무게·포함/불포함 항목) · sopoya.com (드롭오프·절차), 확인 ' + CHECKED
+    },
+    {
+      id: 'kt', cat: 'kr', tier: 'cond', ch: 'express', name: 'KT Express (LA)', tag: '게시 운임 + 미국 내 선배송', div: 166, divNote: '부피무게 공식 비공개 (÷166 가정)', days: [3, 4],
+      places: ['kt'],
+      price(c) {
+        const ship = 6.99 + 2 * (c.bill - 1);
+        return { p: ship, note: `게시 운임 $6.99 + $2 × ${c.bill - 1} lb = $${ship.toFixed(2)} (청구 ${c.bill} lb, ÷166 가정)` };
+      },
+      adds(c) {
+        const a = [], u = [];
+        preship(c, a, u);
+        if (st.kind === 'food') a.push(['일반통관 수수료 (식품·화장품)', 3]);
+        u.push('타주 접수 방법·밸리 지점 FedEx 할인 요금 (위 선배송은 USPS 소매가 참고 추정)');
+        return { adds: a, unknown: u };
+      },
+      pros: ['게시 운임이 가장 낮음 ($6.99 + lb당 $2)', '지점 방문 시 박스·포장 무료', '안내 3–4 영업일'],
+      cons: ['뉴욕 지점 없음 — 캘리포니아 센터까지 선배송 비용·시간 추가', '부피무게 적용하지만 공식 비공개 (÷166 가정)', '식품·화장품 일반통관 $3 · 관부가세 별도'],
+      how: ['KT Express(+1 424 300 8545)에 타주 접수 문의 — 사이트 안내: 타주 고객은 밸리 지점(할인 FedEx 계정·픽업) 이용', '안내받은 라벨/주소로 센터에 발송', '센터 실측 후 결제 → 한국 발송'],
+      src: 'ktxpress.com/services/outbound (게시 운임·수수료·지점), USPS Notice 123 Ground Advantage Retail Zone 8, 확인 ' + CHECKED
+    },
+    {
+      id: 'sth', cat: 'kr', tier: 'cond', ch: 'express', name: 'Shipping To Home (LA)', tag: 'kg 단가 공시 + 선배송', div: 0, divNote: '부피무게·올림 규칙 비공개 (실무게 kg 올림 가정)', days: [2, 3], dayUnit: '일',
+      places: ['sth'],
+      price(c) {
+        const s3 = c.dims, kg = c.act * KG;
+        if (kg >= 30 || s3[0] * CM >= 100 || (s3[0] + s3[1] + s3[2]) * CM >= 160) {
+          if (st.kind !== 'move') return { skip: '일반 화물 30 kg·한 변 100 cm·세 변 합 160 cm 미만' };
+        }
+        const k = Math.max(1, Math.ceil(kg - 1e-9));
+        const p = k >= 30 ? 95.49 + 3 * (k - 30) : 8 + 3 * (k - 1);
+        return { p, note: `LA 출발 공시: 1 kg $8 + kg당 $3 → ${k} kg $${p.toFixed(2)} (실무게 ${r1(kg)} kg 올림 가정)` };
+      },
+      adds(c) {
+        const a = [], u = [];
+        preship(c, a, u);
+        if (st.kind === 'move') a.push(['이사화물 통관 수수료', 19]);
+        u.push('뉴욕 접수 방법·부피무게 기준 (사전 문의)');
+        return { adds: a, unknown: u };
+      },
+      pros: ['kg당 $3 단가 공시 (1 kg $8 · 10 kg $35 · 20 kg $65)', '항공 2–3일 (이사화물 4–5일)', '이사화물은 크기 제한 없음 · 3단 이민가방 가능'],
+      cons: ['LA 출발 요금 — 뉴욕에서는 캘리포니아로 선배송 필요', '일반 화물: 30 kg·한 변 100 cm·세 변 합 160 cm 미만', '이사화물 통관 수수료 $19 · 2박스부터 박스당 $3'],
+      how: ['shippingtohome.com 신청 → 접수 주소·방법 확인', '캘리포니아 센터로 발송 → 실측 후 결제'],
+      src: 'shippingtohome.com/pricelist (kg 요금·한도·이사 수수료·배송기간), 확인 ' + CHECKED
+    },
+    {
+      id: 'ssayo', cat: 'kr', tier: 'cond', ch: 'express', name: '싸요택배 (NJ Hackensack)', tag: '3 lb까지 $8', div: 0, divNote: '부피·크기 기준 비공개', days: [0, 0], dayShort: '약 1주',
+      places: ['ssayo'],
+      price(c) {
+        if (c.act > 3) return { open: '3 lb 초과 요금 비공개 — 전화·카톡 문의' };
+        return { p: 8, note: '공시: 3 lb(약 1.5 kg)까지 $8 — 크기 기준은 비공개' };
+      },
+      adds(c) { return { adds: [], unknown: ['크기·부피 기준 (사전 문의)'] }; },
+      pros: ['3 lb 이하 소형은 $8 — 공시가 중 최저', '대한항공 직계약 · 한국 내 우체국 택배 배송', '귀국이사 짐보관 일정기간 무료'],
+      cons: ['3 lb 초과·이삿짐 요금 비공개 (문의)', 'NJ Hackensack 드롭 (뉴욕 지점 없음) · 포장은 본인', '결제 Zelle·Venmo·현금'],
+      how: ['ssayoexpress.com 가입 → 배송신청서 → 접수번호 받기', 'Hackensack 본점 드롭 (월–금 10–17시) 또는 UPS/USPS로 발송 — 박스에 접수번호 기재'],
+      src: 'ssayoexpress.com (3 lb $8 · 주소·시간·결제), 확인 ' + CHECKED
+    },
+    {
+      id: 'samsung', cat: 'kr', tier: 'quote', ch: 'express', name: '삼성택배 (Samsung Post)', tag: 'Little Neck 드롭', div: 166, days: [0, 0],
+      places: ['samsung'],
+      adds() { return { adds: [], unknown: st.pickup ? ['픽업비'] : [] }; },
+      pros: ['Little Neck(254-24 Northern Blvd) 제휴 드롭오프 — 베이사이드 바로 옆', 'NJ 본사 직접 드롭 시 20% 할인 안내'],
+      cons: ['요금표 비공개 (사이트 계산기만) → 견적 입력 필요', '부피무게 ÷166 · 최소 1 lb · 올림'],
+      how: ['samsungpost.com 계산기 또는 카카오톡(nj201com)으로 견적', '받은 금액을 "견적 입력"에 저장하면 순위에 반영'],
+      src: 'samsungpost.com/to-kor (부피무게·드롭오프·본사 할인), 확인 ' + CHECKED
+    },
+    {
+      id: 'cj', cat: 'kr', tier: 'quote', ch: 'express', name: 'CJ택배 퀸즈 (192 Northern)', tag: '192-02 Northern Blvd', div: 166, divNote: '매장 확인 (한인택배 통상 ÷166)', days: [0, 0],
+      places: ['cj'],
+      adds() { return { adds: [], unknown: [st.pack ? '포장·박스비' : '', st.pickup ? '픽업비' : ''].filter(Boolean) }; },
+      pros: ['베이사이드에서 가장 가까운 한인 택배 매장 · 한국어 상담', 'FedEx·UPS·DHL·USPS도 한 곳에서 비교 가능'],
+      cons: ['공개 요금표 없음 → 매장 견적 필요', '부피무게 기준은 매장 확인'],
+      how: ['아래 "견적 요청 문구"를 전화로 알려 견적 받기', '받은 금액을 "견적 입력"에 저장'],
+      src: 'FedEx Local (192-02 Northern Blvd ShipCenter), 업소록 (CJ택배 퀸즈대리점), 확인 ' + CHECKED
+    },
+    {
+      id: 'hanjin', cat: 'kr', tier: 'quote', ch: 'express', name: '한진택배 (Joy Hanjin·Asiana)', tag: '공식 취급점 2곳', div: 166, divNote: '업체 확인', days: [0, 0],
+      places: ['hanjin', 'asiana'],
+      adds() { return { adds: [], unknown: [st.pack ? '포장·박스비' : '', st.pickup ? '픽업비' : ''].filter(Boolean) }; },
+      pros: ['한진 공식 취급점 2곳 (159-09 / 162-01 Northern Blvd)', '항공·해상·귀국이사 모두 상담'],
+      cons: ['공개 요금표 없음 → 견적 필요'],
+      how: ['전화로 박스 치수·무게 견적', '"견적 입력"에 저장'],
+      src: '한진 해외 취급점 목록(hanjin.com), 확인 ' + CHECKED
+    },
+    {
+      id: 'dk', cat: 'kr', tier: 'quote', ch: 'express', name: 'DK Express (CJ 항공)', tag: 'Flushing 154th St', div: 166, divNote: '업체 확인', days: [0, 0],
+      places: ['dk'],
+      adds() { return { adds: [], unknown: [st.pack ? '포장·박스비' : '', st.pickup ? '픽업비' : ''].filter(Boolean) }; },
+      pros: ['CJ 계열 한국행 택배 · FedEx ShipCenter 겸업'],
+      cons: ['공개 요금표 없음 → 견적 필요', '예전 주소(141-47 Northern Blvd)는 현재 154th St로 확인됨'],
+      how: ['방문 또는 전화 견적 → "견적 입력"에 저장'],
+      src: 'FedEx Local "Dkexpress" 35-28 154th St, 확인 ' + CHECKED
+    },
+    {
+      id: 'lulu', cat: 'kr', tier: 'quote', ch: 'express', name: '룰루익스프레스 (Lulu New York)', tag: '무료 픽업 10 lb+', div: 166, divNote: '규격화물만 부피무게 (세 변 합 60″ 초과 등)', days: [0, 0],
+      places: ['lulu'],
+      adds(c) {
+        const a = [], u = [];
+        if (c.act > 55) a.push(['중량화물 추가 (55 lb 이상)', c.act > 154 ? 45 : c.act > 110 ? 35 : 25]);
+        if (st.pickup && c.act < 10) u.push('픽업 (10 lb 미만은 무료 픽업 대상 아님)');
+        if (st.pack) a.push(['박스 구입 (포장 무료)', c.dims[0] > 18 || c.dims[1] > 14 ? 4 : 3]);
+        return { adds: a, unknown: u };
+      },
+      pros: ['뉴욕·북부 NJ 무료 픽업 (10 lb 이상)', '박스 구입 시 포장 무료 ($2–5)', 'CJ대한통운 미국 법인과 정식 계약'],
+      cons: ['기본 요금표 비공개 → 견적 필요', '55 lb 이상 중량화물 추가 $25 / 110 lb+ $35 / 154 lb+ $45', '한 변 30″ 또는 세 변 합 60″ 초과 시 규격화물(부피무게 적용)'],
+      how: ['카카오톡(pf.kakao.com/_RHcxgK) 또는 배송신청서로 견적', '픽업 일정 확인 후 "견적 입력"에 저장'],
+      src: 'lulu-newyork.com (박스 가격·중량/규격화물 추가요금·무료 픽업), 확인 ' + CHECKED
+    },
+    {
+      id: 'fcmi', cat: 'usps', tier: 'pub', ch: 'post', name: 'USPS First-Class Mail Int\'l', tag: '서류·편지 전용', div: 0, days: [7, 21], dayUnit: '일', kinds: ['docs'],
+      places: ['uspsBT', 'uspsBS'],
+      price(c) {
+        const oz = c.act * 16, s = c.dims;
+        if (s[0] <= 11.5 && s[1] <= 6.125 && s[2] <= 0.25 && oz <= 3.5) { const b = USPS.fcmiLetter.find(x => oz <= x[0]); return { p: b[1], note: `Letter ${b[0]} oz 구간 $${b[1].toFixed(2)}` }; }
+        if (s[0] <= 15 && s[1] <= 12 && s[2] <= 0.75 && oz <= 15.994) { const b = USPS.fcmiFlat.find(x => oz <= x[0]); return { p: b[1], note: `Large Envelope(Flat) ${b[0]} oz 구간 $${b[1].toFixed(2)}` }; }
+        return null;
+      },
+      pros: ['서류·편지는 가장 저렴 (Large Envelope 1 oz $3.30)', '부피무게 없음'],
+      cons: ['물품 불가 — 서류만 · 15×12×¾″, 15.994 oz 이하', '추적 없음 (Registered Mail $25 추가 시 가능)'],
+      how: ['우체국 창구에서 우표 구입·접수'],
+      src: 'USPS Notice 123 (2026-10-04) First-Class Mail International Price Group 3'
+    },
+    {
+      id: 'fcpis', cat: 'usps', tier: 'pub', ch: 'post', name: 'USPS First-Class Package Int\'l', tag: '4 lb 이하 · 배송확인', div: 0, days: [7, 28], dayUnit: '일',
+      places: ['uspsBT', 'uspsBS', 'ups4461'],
+      price(c) {
+        const oz = c.act * 16, s = c.dims;
+        if (oz > 64 || c.val > 400 || s[0] > 24 || s[0] + s[1] + s[2] > 36) return null;
+        if (s[0] < 6 || s[1] < 4) return { skip: '주소면 최소 6×4″ 미달' };
+        const b = USPS.fcpis.find(x => oz <= x[0]);
+        return { p: b[2], retail: b[1], note: `온라인 라벨 $${b[2].toFixed(2)} · 창구 $${b[1].toFixed(2)} (${b[0]} oz 구간)` };
+      },
+      adds() { return { adds: [], unknown: st.pickup ? ['USPS 방문 수거 (Pickup on Demand $26.50 또는 무료 Carrier Pickup 가능 여부)'] : [] }; },
+      pros: ['4 lb 이하 소형에 가장 싼 USPS 서비스', '부피무게 없음 — 실무게만', '한국은 E-USPS DELCON INTL 대상 — 배송 완료 확인 무료'],
+      cons: ['1–4주 · 보험·분실 보상 없음 · 물품가액 $400 이하', '최소 6×4″ 주소면 · 가장 긴 변 24″ · 세 변 합 36″ 이하'],
+      how: ['Click-N-Ship / Pirate Ship 라벨(온라인가) → 우체국 드롭', '창구 접수 시 retail 요금'],
+      src: 'USPS Notice 123 (2026-10-04) FCPIS Price Group 18 · IMM 251/252 (규격·E-USPS DELCON INTL 국가 목록)'
+    },
+    {
+      id: 'pmi', cat: 'usps', tier: 'pub', ch: 'post', name: 'USPS Priority Mail Int\'l', tag: '우체국 표준 · 추적', div: 0, days: [6, 10],
+      places: ['uspsBT', 'uspsBS', 'ups4461'],
+      price(c) {
+        const s = c.dims, girth = 2 * (s[1] + s[2]);
+        if (c.act > 44 || s[0] > 42 || s[0] + girth > 79) return null;
+        const n = Math.max(1, Math.ceil(c.act - 1e-9)), r = USPS.pmi[n - 1], cm = PS.pmiC[n - 1];
+        return { p: cm, retail: r, note: `온라인 상업가 $${cm.toFixed(2)} (Pirate Ship·Click-N-Ship) · 창구 $${r.toFixed(2)} (${n} lb)` };
+      },
+      adds() { return { adds: [], unknown: st.pickup ? ['USPS 방문 수거 (Carrier Pickup 무료 가능 여부)'] : [] }; },
+      pros: ['국제우편은 부피무게 없음 — Pirate Ship 계산기 실측: 16×12×12″ 박스 1 lb도 1 lb 요금', '추적 + $200 carrier liability 기본', '온라인 상업가는 창구보다 약 3–4% 저렴 (1–44 lb 실측)'],
+      cons: ['작고 무거운 물건은 한인택배보다 비쌈', '한국은 최대 44 lb · 길이 42″ · 길이+둘레 79″'],
+      how: ['Pirate Ship 또는 Click-N-Ship(상업가) 라벨 → 우체국 드롭', '창구 접수 시 PS 2976-A (창구가)'],
+      src: 'USPS Notice 123 (2026-10-04) PMI Price Group 18 · Pirate Ship 요금 계산기 상업가 1–44 lb (11360→South Korea, ' + CHECKED + ') · IMM Korea'
+    },
+    {
+      id: 'fr', cat: 'usps', tier: 'pub', ch: 'post', name: 'USPS PMI Flat Rate', tag: '무게 무관 정액', div: 0, days: [6, 10], flat: true,
+      places: ['uspsBT', 'uspsBS'],
+      price(c) {
+        const cand = [];
+        if (st.frBox) { const b = FR_BOX[st.frBox]; if (c.act > b.max) return null; return { p: b.p, box: b.n, note: `USPS ${b.n} Flat Rate Box 사용 (바깥 ${b.outer.map(nIn).join('×')}″) — $${b.p.toFixed(2)}` }; }
+        if (c.act <= 4 && c.dims[2] <= 1 && fit(c.dims.slice(0, 2).concat([1]), [12, 9, 1])) cand.push(['Envelope', USPS.fr.env]);
+        for (const k of ['small', 'medium', 'large']) {
+          const b = FR_BOX[k];
+          if (c.act <= b.max && (fit(c.dims, b.inner) || (b.inner2 && fit(c.dims, b.inner2)))) cand.push([b.n, b.p]);
+        }
+        if (!cand.length) return null;
+        cand.sort((a, b) => a[1] - b[1]);
+        return { p: cand[0][1], box: cand[0][0], note: `지금 박스가 ${cand[0][0]} Flat Rate 안쪽 치수에 들어감 → 통째로 넣어 $${cand[0][1].toFixed(2)}` };
+      },
+      pros: ['무게 무관 정액 (봉투·Small 4 lb, Medium·Large 20 lb)', '박스 무료 (우체국·usps.com)', '작고 무거운 물건(책·통조림)에 유리'],
+      cons: ['USPS 전용 박스·봉투 사용 — 내용물이 안쪽 치수에 들어가야 함', '한국은 Flat Rate 그룹 3 요금'],
+      how: ['우체국에서 Flat Rate 박스 무료 수령 → 포장 → 창구 또는 Click-N-Ship'],
+      src: 'USPS Notice 123 (2026-10-04) PMI Flat Rate Group 3 — Envelope $49.75 · Small $51.40 · Medium $96.40 · Large $121.30'
+    },
+    {
+      id: 'pmei', cat: 'usps', tier: 'pub', ch: 'post', name: 'USPS Priority Mail Express Int\'l', tag: '우체국 특급', div: 0, days: [3, 5],
+      places: ['uspsBT', 'uspsBS'],
+      price(c) {
+        const s = c.dims, girth = 2 * (s[1] + s[2]);
+        if (c.act > 66 || s[0] > 60 || s[0] + girth > 108) return null;
+        const i = c.act <= 0.5 ? 0 : Math.ceil(c.act - 1e-9), p = PS.pmeiC[i], r = PS.pmeiR[i];
+        return { p, retail: r, note: `온라인 상업가 $${p.toFixed(2)} · 창구 $${r.toFixed(2)} (${i ? i + ' lb' : '0.5 lb'}) · Flat Rate Envelope $${USPS.fr.pmeiEnv.toFixed(2)}` };
+      },
+      pros: ['USPS 중 가장 빠름 · 한국은 Money-Back Guarantee 대상', '부피무게 없음 · 추적·보험'],
+      cons: ['비쌈 — 급한 서류·소형용', '$200 carrier liability'],
+      how: ['Pirate Ship·Click-N-Ship(상업가) 또는 우체국 창구(PS 2976-B)'],
+      src: 'USPS Notice 123 (2026-10-04) PMEI Price Group 18 · Pirate Ship 요금 계산기 상업가·창구가 0.5–66 lb (' + CHECKED + ') · IMM Korea (최대 66 lb)'
+    },
+    {
+      id: 'mbag', cat: 'usps', tier: 'pub', ch: 'post', name: 'USPS Airmail M-bag (책 자루)', tag: '책·인쇄물 전용', div: 0, days: [0, 0], dayShort: '항공 · 기간 미공시', kinds: ['books'],
+      places: ['uspsBT', 'uspsBS'],
+      price(c) {
+        if (c.act > 66) return null;
+        const n = Math.max(0, Math.ceil(c.act - 1e-9) - 11), p = Math.round((133.43 + 12.13 * n) * 100) / 100;
+        return { p, note: `11 lb까지 $133.43${n ? ` + ${n} lb × $12.13` : ''} = $${p.toFixed(2)} (Price Group 3)` };
+      },
+      pros: ['책·잡지 등 인쇄물을 우체국 자루(M-bag)째 한 수취인에게', '부피무게 없음 · 한국 66 lb까지'],
+      cons: ['인쇄물만 가능 (물품 혼입 불가)', '소매가 lb당 $12.13 · 최소 11 lb($133.43) — 한인택배보다 비싼 편', '상업용 M-bag(대량 우편 사업자)은 lb당 $6.12로 따로 있음 — 개인 창구 접수는 소매가', '배송 기간 공시 없음'],
+      how: ['우체국 창구에서 M-bag 접수 (세관신고서 + 자루 꼬리표)'],
+      src: 'USPS Notice 123 (2026-10-04) Airmail M-Bag Prices Price Group 3 · IMM Korea (M-bag 가능, 66 lb)'
+    },
+    {
+      id: 'ups', cat: 'courier', tier: 'pub', ch: 'express', name: 'UPS Worldwide Expedited (Pirate Ship)', tag: 'UPS 할인 라벨', div: 139, divMin: 864, days: [3, 5],
+      places: ['ups4461', 'ups6819', 'staples', 'upsFL'],
+      price(c) {
+        const s = c.dims;
+        if (c.act > 150 || s[0] > 108 || s[0] + 2 * (s[1] + s[2]) > 165) return null;
+        if (c.bill > 70) return { open: '청구 70 lb 초과 — Pirate Ship 계정에서 확인' };
+        const p = PS.upsE[c.bill - 1];
+        return { p, note: `Pirate Ship 할인가 · 청구 ${c.bill} lb (부피 ÷139는 864 in³ 이상부터 — 계산기 실측)`, retail: 0 };
+      },
+      pros: ['UPS 정가 대비 약 75–83% 할인 (Pirate Ship 무료 계정)', '문 앞까지 추적 · $100 carrier liability 기본', '베이사이드 UPS Store·Staples에 바로 드롭'],
+      cons: ['부피무게 ÷139 — 박스가 864 in³(0.5 ft³) 이상이면 적용 (예: 12×12×12″ 1 lb → 13 lb 요금)', '수취인에게 관부가세·통관 수수료 청구 가능', '요금은 주소·날짜에 따라 변동 — 라벨 구매 화면에서 최종 확인'],
+      how: ['pirateship.com 무료 가입 → 치수·무게 입력 → UPS Worldwide Expedited 선택', '라벨 + 세관정보 → UPS Store·Staples 드롭'],
+      src: 'Pirate Ship 요금 계산기 실측 1–70 lb (11360 → South Korea, Box, ' + CHECKED + ') · 부피무게 기준 실측(840 in³ 미적용 / 864 in³ 적용)'
+    },
+    {
+      id: 'upssv', cat: 'courier', tier: 'pub', ch: 'express', name: 'UPS Worldwide Saver (Pirate Ship)', tag: '빠른 UPS · Express는 +$5–10', div: 139, divMin: 864, days: [2, 3],
+      places: ['ups4461', 'ups6819', 'staples', 'upsFL'],
+      price(c) {
+        const s = c.dims;
+        if (c.act > 150 || s[0] > 108 || s[0] + 2 * (s[1] + s[2]) > 165) return null;
+        if (c.bill > 70) return { open: '청구 70 lb 초과 — Pirate Ship 계정에서 확인' };
+        const p = PS.upsS[c.bill - 1], x = PS.upsX[c.bill - 1];
+        return { p, note: `Pirate Ship 할인가 · 청구 ${c.bill} lb · 같은 조건 Worldwide Express(오전 도착) $${x.toFixed(2)}` };
+      },
+      pros: ['2–3 영업일 (Expedited보다 1–2일 빠름)', '$100 carrier liability · 문 앞 추적'],
+      cons: ['부피무게 ÷139 (864 in³ 이상)', '요금은 주소·날짜에 따라 변동'],
+      how: ['Pirate Ship에서 UPS Worldwide Saver 선택 → UPS 매장 드롭'],
+      src: 'Pirate Ship 요금 계산기 실측 1–70 lb (' + CHECKED + ')'
+    },
+    {
+      id: 'fedex', cat: 'courier', tier: 'quote', ch: 'express', name: 'FedEx International (Economy·Priority)', tag: 'Bay Terrace 드롭', div: 139, days: [2, 5],
+      places: ['fedexDR', 'bbs', 'cj'],
+      pros: ['Bay Terrace Duane Reade(24-28 Bell Blvd)에 라벨 붙인 소포 드롭 — Bay Terrace 쪽', '빠름 · 상세 추적'],
+      cons: ['부피무게 ÷139 · 유류할증료 변동', '반드시 온라인 견적으로 확인'],
+      how: ['fedex.com 또는 할인 라벨 사이트에서 견적·라벨', 'Duane Reade FedEx OnSite(55 lb까지) 또는 ShipCenter에 드롭'],
+      src: 'FedEx Local (Duane Reade 24-28 Bell Blvd, Bb\'s Pack And Ship 42-06A Bell Blvd), 확인 ' + CHECKED
+    },
+    {
+      id: 'fedexbox', cat: 'courier', tier: 'quote', ch: 'express', name: 'FedEx 10kg·25kg Box (정액)', tag: '박스당 정액', div: 0, flat: true, days: [2, 4],
+      places: ['fedexDR', 'bbs', 'cj'],
+      elig(c) {
+        if (c.act > 55) return '55 lb 초과';
+        if (!fit(c.dims, [21.56, 16.56, 13.19])) return 'FedEx 25kg Box 안쪽 치수 초과';
+        return null;
+      },
+      hint(c) { return c.act <= 22 && fit(c.dims, [15.81, 12.94, 10.19]) ? '10kg Box(안쪽 15.8×12.9×10.2″)에 들어감' : '25kg Box(안쪽 21.6×16.6×13.2″) 사용'; },
+      pros: ['International Priority — 박스당 정액, 한도 안에서는 부피무게 없음', '10kg Box 22 lb · 25kg Box 55 lb까지 (박스는 FedEx 무료 제공)'],
+      cons: ['미국 출발 박스 요금은 fedex.com 견적으로 확인', '주류·위험물·부패성 물품 불가 · 박스 1개당 운송장 1장', '유류할증료 별도'],
+      how: ['fedex.com에서 FedEx 10kg/25kg Box 주문(무료) 또는 FedEx 매장 문의', 'International Priority + FedEx Box 포장으로 견적·라벨'],
+      src: 'fedex.com 10kg/25kg Box 안내 (안쪽 치수·한도·정액) · FedEx US International 서비스 비교 페이지, 확인 ' + CHECKED
+    },
+    {
+      id: 'dhl', cat: 'courier', tier: 'quote', ch: 'express', name: 'DHL Express Worldwide', tag: '픽업 예약', div: 139, days: [2, 4],
+      places: [],
+      pros: ['통관 처리가 빠른 편'],
+      cons: ['부피무게 cm³÷5,000 (= in³÷139)', '정가가 매우 비쌈 (2026 미국 요금표 한국 Zone F: 1 lb $141.54) → 할인 라벨 견적 필수', '베이사이드에 확인된 DHL 접수처 없음 → 픽업 예약'],
+      how: ['mydhl.express.dhl 또는 할인 라벨 사이트 견적 → 픽업 예약'],
+      src: 'DHL Express 부피무게 기준 · Wise 블로그 인용 DHL 2026 US 요금표, 확인 ' + CHECKED
+    },
+    {
+      id: 'pirate', cat: 'online', tier: 'pub', ch: 'post', name: 'Pirate Ship Simple Export Rate', tag: 'USPS 드롭 · 무료 가입', div: 0, days: [7, 21], dayShort: '1–3주+',
+      price(c) {
+        const t = c.act <= 0.5 ? PS.ser[0] : PS.ser.find(x => x[0] >= Math.ceil(c.act - 1e-9));
+        return t ? { p: t[1], note: `${t[0]} lb 구간 $${t[1].toFixed(2)} — 무게만으로 결정 (부피무게 없음, 크기 상한만)` } : null;
+      },
+      elig(c) {
+        const d = c.dims;
+        if (c.act > 20) return '20 lb 초과';
+        if (c.act <= 4) { if (d[0] > 22) return '4 lb 이하: 가장 긴 변 22″ 초과'; if (d[0] + d[1] + d[2] > 36) return '4 lb 이하: 세 변 합 36″ 초과'; if (c.val > 400) return '4 lb 이하: 가액 $400 초과'; }
+        else { if (d[0] > 31) return '4 lb 초과: 길이 31″ 초과'; if (2 * (d[1] + d[2]) > 54) return '4 lb 초과: 둘레 54″ 초과'; if (d[0] * d[1] * d[2] >= 3456) return '4 lb 초과: 부피 2 ft³ 이상'; }
+        return null;
+      },
+      places: ['uspsBT', 'uspsBS'],
+      pros: ['무게·목적지(캐나다/그 외)만으로 정해지는 단순 요금 — 부피무게 대신 크기 상한', '20 lb까지 · 문앞 추적 · 세관정보 전자 전송 · 일반 박스 사용', '국내 라벨로 수출 분류센터에 보내면 재라벨 후 출국'],
+      cons: ['carrier liability 없음 — 보험 별도 구매 (가액 4 lb 이하 $400, 초과 $2,500까지)', '4 lb 이하: 긴 변 22″ · 세 변 합 36″ / 4 lb 초과: 길이 31″ · 둘레 54″ · 2 ft³ 미만', '1–3주+ (통관 제외) · Gift 표기 불가 (Merchandise로 출력)', '4 lb → 5 lb 구간에서 $33.99 → $56.99로 크게 뜀'],
+      how: ['pirateship.com 가입(무료) → 라벨 출력 → 우체국 드롭'],
+      src: 'Pirate Ship 요금 계산기 실측 0.5–20 lb (11360 → South Korea, ' + CHECKED + ') · pirateship.com/simple-export-rate · support.pirateship.com (규격·가액·보험 없음)'
+    },
+    {
+      id: 'easyship', cat: 'online', tier: 'quote', ch: 'express', name: 'Easyship (ePost Global·Passport 등)', tag: '할인가 비교', div: 0, divNote: '운송사별', days: [0, 0],
+      places: [],
+      pros: ['여러 운송사 할인가 한 번에 비교', '공개 예 (US→KR 0.5 lb, ' + CHECKED + ' 재확인): ePost Global DelCon $7.43 (16–22 영업일) · Tracked Prime $7.50 (4–10) · Flat Export $13.66 · ePost DDP $17.30 · Passport $17.33 · USPS FCPI $20.85 · Asendia $25.37 · UPS Express $50.43'],
+      cons: ['계정 가입 필요 · 무게·크기마다 요금 다름', '중개 플랫폼 — 실제 운송사(ePost Global·UPS 등)와 중복 비교 주의'],
+      how: ['easyship.com에 치수·무게 입력 → 운송사 선택 → 라벨'],
+      src: 'Easyship US→South Korea 요금 계산기 (0.5 lb 예시, ' + CHECKED + ')'
+    },
+    {
+      id: 'dream', cat: 'freight', tier: 'pub', ch: 'move', name: '현대해운 드림백 (해상)', tag: '35 kg 정액 · NY $253', div: 0, flat: true, days: [0, 0], dayShort: '해상 · 공시 없음', dayNote: '해상 — 운송기간 공시 없음 (커뮤니티: 1–2달)',
+      places: ['dream'],
+      price(c) {
+        if (c.act > 77.1) return null;
+        if (c.act < 15 && st.kind !== 'move') return { hide: true };
+        const bag = fit(c.dims, [35.43, 22.44, 11.81]), box = (c.dims[0] + c.dims[1] + c.dims[2]) * CM <= 160, dbox = fit(c.dims, [31.5, 19.69, 15.75]);
+        const golf = c.act < 40 && fit(c.dims, [50, 15, 12]);
+        if (!bag && !box && !dbox && !golf) return { skip: '개인 가방 90×57×30 cm · 개인 박스 세 변 합 160 cm · 골프백 50×15×12″ 초과' };
+        if (golf && !bag && !box && !dbox) return { p: 253, box: '골프백', note: '골프백 운송비 = 드림백과 같은 $253 (40 lb 미만 · 15×12×50″ 미만 · 골프채만)' };
+        return { p: 233, box: bag && !box ? '개인 이민가방' : '개인 박스', note: 'NY·NJ(동부) 공시 $253 − 개인 가방·박스 $20 할인 = $233 (드림백 가방을 받아 쓰면 $253)' };
+      },
+      adds() { return { adds: [['한국 통관비 (1개 · 추가 개당 $13)', 27]], unknown: [] }; },
+      pros: ['35 kg(77 lb)까지 정액 — 무겁고 큰 짐일수록 lb당 단가 최저 (77 lb $260 → $3.38/lb)', 'UPS 비용 포함 한 번 결제 · 직원 있는 The UPS Store 드롭', '여러 개면 통관비 개당 +$13만 추가'],
+      cons: ['해상 — 운송기간 공시 없음 (커뮤니티 1–2달)', '전용 드림백·드림박스는 $253 + $27 = $280 (2026-08 무렵 공시는 $193이었음)', '제주·도서 +$30, 빈 가방 약 3 kg 포함 — 다른 검토 자료의 주장, 공식 페이지에서 확인 못 함 (신청 시 확인)', '개인 가방 90×57×30 cm·박스 세 변 합 160 cm·35 kg 초과 시 접수 불가 (추가 패키지 필요)', '이사자 요건 미충족 시 관세사 수수료·관부가세 가능', '빈 드림백 동부 배송 7–10일 · 무인 UPS 접수처 불가'],
+      how: ['dreambag.kr 신청·결제 (개인 가방·박스 또는 드림백/드림박스 선택)', 'UPS 리턴 라벨 + 현대해운 라벨 2장 부착 → 직원 있는 The UPS Store 드롭', '가방에 주문번호 5자리 + 한글 이름 기재'],
+      src: 'dreambag.kr 미국 주별 운송비·드림백 비용 계산(NY $253, 통관 $27/+$13, 개인 $20 할인) · 이용안내·FAQ(규격·35 kg·드림박스 80×50×40 cm·UPS 드롭·환불), 확인 ' + CHECKED
+    },
+    {
+      id: 'nonstop', cat: 'freight', tier: 'quote', ch: 'move', name: '논스톱박스 (항공 귀국이사)', tag: '박스 단위 · 40 lb', div: 0, flat: true, days: [3, 7], kinds: ['move'],
+      places: ['nonstop'],
+      elig(c) { if (c.act > 40) return '박스당 40 lb 초과'; if (c.dims[0] + c.dims[1] + c.dims[2] > 52) return '세 변 합 52″ 초과'; return null; },
+      hint() { return '박스 단가 비공개 — 리뷰상 박스당 $130'; },
+      pros: ['항공 귀국이사 박스 단위 · 최소 수량·기본료 없음', '타지역은 FedEx 라벨로 드롭 · 귀국까지 무료 보관'],
+      cons: ['박스당 40 lb · 세 변 합 52″ 이하', '박스 단가 비공개 (견적)'],
+      how: ['nonstopbox.com 무료 견적 → FedEx 라벨 수령 → FedEx 매장 드롭'],
+      src: 'nonstopbox.com (40 lb·52″·항공 3–7일·보관), 확인 ' + CHECKED
+    },
+    {
+      id: 'freight', cat: 'freight', tier: 'quote', ch: 'move', name: '항공화물 · 해상 · 귀국이사', tag: '대형·여러 박스', div: 0, divNote: '업체 확인', days: [0, 0],
+      places: ['hanjin', 'asiana', 'cj'],
+      pros: ['여러 박스·66 lb 이상·가구는 일반 택배보다 유리할 수 있음'],
+      cons: ['최소 운임·통관 수수료·창고비가 커서 박스 1개는 손해'],
+      how: ['한진·CJ 매장에 귀국이사/화물 견적'],
+      src: '한진 해외 취급점(귀국이사 상담), 확인 ' + CHECKED
+    }
+  ];
+
+
+  // ------------------------------------------------------------------ rate methods (표준 vs 독립)
+  // 표준 = 무게 요금표 · 부피무게 in³÷166 (= cm³÷6,000)과 실무게 중 큰 값 · 1 lb 단위 올림 (뉴욕 한인택배 대부분)
+  const STD_TXT = '무게 요금표 · 부피무게 in³÷166 (= cm³÷6,000)과 실무게 중 큰 값 · 1 lb 단위 올림';
+  const MD = {
+    sopoya: { std: 1, rate: '1–60 lb 공시표 (계단식: 1 lb $20 · 5 lb $32 · 30 lb $100 · 45 lb $133 · 60 lb $166)', lim: '세 변 합 150 cm · 한 변 1 m · 25 kg 초과 시 화물 추가비 · 61 lb 이상 문의', best: '실무게 × 166 in³ 이하 박스 · 25 kg(55 lb) 가까이 채울수록 lb당 단가↓ · 계단 직전(5·30·45 lb) 유리' },
+    samsung: { std: 1, rate: '비공개 (사이트 계산기)', lim: '최소 1 lb · 크기 한도 비공개', best: '실무게 × 166 in³ 이하 · NJ 본사 드롭 20% 할인' },
+    cj: { std: 1, est: 1, rate: '매장 견적', lim: '매장 확인', best: '실무게 × 166 in³ 이하 (한인택배 통상 기준 — 매장 확인)' },
+    hanjin: { std: 1, est: 1, rate: '매장 견적', lim: '매장 확인', best: '실무게 × 166 in³ 이하 (통상 기준 — 매장 확인)' },
+    dk: { std: 1, est: 1, rate: '매장 견적', lim: '매장 확인', best: '실무게 × 166 in³ 이하 (통상 기준 — 업체 확인)' },
+    kt: { k: '$6.99 + lb당 $2', d: '첫 1 lb $6.99 · 이후 lb당 $2 일정 (계단 없음) · 부피무게 적용, 공식 비공개', rate: '$6.99 + $2/lb', lim: '크기 한도 비공개 · 가액(목록 $200·일반 $150) · 영양제 6병', best: '무거울수록 lb당 $2에 수렴 — 단 캘리포니아 센터까지 선배송비 별도' },
+    lulu: { k: '규격화물만 부피', d: '일반 박스는 실무게 기준 · 한 변 30″ 또는 세 변 합 60″ 초과 시 규격화물(부피무게) · 55 lb 이상 할증 $25 (110+ $35 · 154+ $45)', rate: '견적', lim: '55 lb부터 중량 할증', best: '한 변 30″·세 변 합 60″ 이하 · 54 lb 이하 → 크고 가벼운 짐 유리' },
+    fcmi: { k: '서류 oz 요금', d: 'Letter(3.5 oz)·Large Envelope(15.994 oz) 크기 등급별 oz 구간', rate: '1 oz $3.30 → 16 oz $18.55 (Flat)', lim: '서류만 · 15×12×¾″', best: '15×12×¾″ 이하 서류 봉투' },
+    fcpis: { k: '부피 없음 · oz 구간', d: '8 / 16 / 32 / 48 / 64 oz 5구간 · 부피무게 없음', rate: '$21.94–$55.44 (온라인)', lim: '4 lb · 가액 $400 · 길이 24″ · 세 변 합 36″ · 최소 6×4″', best: '구간 끝(1·2·3·4 lb)까지 채운 소형' },
+    pmi: { k: '부피 없음', d: '실무게 1 lb 단위 · 부피무게 없음 (Pirate Ship 실측 확인)', rate: '온라인 상업가 1 lb $66.30 → 44 lb $252.72 · 창구 $68.50 → $267.50', lim: '44 lb · 길이 42″ · 길이+둘레 79″', best: '크고 가벼운 짐 — 길이+둘레 79″ 이하 최대 (예 20×14×14″)' },
+    fr: { k: '박스 정액', d: 'USPS 전용 박스·봉투 정액 · 무게 무관 (봉투·Small 4 lb · Medium·Large 20 lb)', rate: '$49.75 / $51.40 / $96.40 / $121.30', lim: '내용물이 박스 안쪽 치수에 들어가야 함', best: 'Medium 박스에 20 lb 꽉 → lb당 $4.82' },
+    pmei: { k: '부피 없음', d: '실무게 0.5 lb·1 lb 단위 · 부피무게 없음', rate: '온라인 0.5 lb $87.26 → 66 lb $383.27 · 창구 $91.10 → $400.15', lim: '66 lb · 길이 60″ · 길이+둘레 108″', best: '급한 서류·소형 (Flat Rate Envelope $79.80)' },
+    mbag: { k: '책 전용 자루', d: '인쇄물(책·잡지)만 자루째 · 11 lb까지 $133.43 + 추가 lb당 $12.13', rate: '11 lb $133.43 · 66 lb $800.58', lim: '인쇄물만 · 66 lb', best: '책을 66 lb 가득 — 그래도 lb당 $12.1로 한인택배보다 비쌈' },
+    ups: { k: '부피 ÷139 (864 in³↑)', d: 'Pirate Ship 할인가 · in³÷139, 박스 864 in³ 이상부터 적용 (실측) · 1 lb 올림', rate: '1 lb $43.34 · 10 lb $83.95 · 20 lb $129.28 · 50 lb $247.79', lim: '150 lb · 길이 108″ · 길이+둘레 165″', best: '실무게 × 139 in³ 이하 — 한인택배 기준보다 박스를 17% 더 작게' },
+    fedex: { k: '부피 ÷139', d: 'in³÷139 · 1 lb 올림 · 유류할증료 변동', rate: '온라인 견적', lim: '150 lb/개', best: '실무게 × 139 in³ 이하' },
+    fedexbox: { k: '박스 정액', d: 'FedEx 10kg Box / 25kg Box — 박스당 정액 (International Priority), 한도 안에서는 부피무게 없음', rate: '견적 (미국 출발 박스 요금)', lim: '10kg Box 안쪽 15.81×12.94×10.19″ · 22 lb / 25kg Box 21.56×16.56×13.19″ · 55 lb', best: '25kg Box에 55 lb 꽉 채우기' },
+    dhl: { k: '부피 ÷139', d: 'cm³÷5,000 (= in³÷139)', rate: '견적 (정가는 매우 높음)', lim: '픽업 예약', best: '실무게 × 139 in³ 이하' },
+    upssv: { k: '부피 ÷139 (864 in³↑)', d: 'Pirate Ship 할인가 · Expedited보다 1–2일 빠름', rate: '1 lb $55.43 · 10 lb $89.10 · 20 lb $138.22', lim: '150 lb', best: '실무게 × 139 in³ 이하 · 또는 864 in³ 미만 소형' },
+    pirate: { k: '중량구간 · 크기 상한', d: '무게·목적지(캐나다/그 외)로만 요금 · 부피무게 대신 크기 상한 · 기본 보험 없음', rate: '0.5 lb $14.99 · 1 lb $18.99 · 4 lb $33.99 · 5 lb $56.99 · 20 lb $104.99', lim: '20 lb · ≤4 lb: 긴 변 22″·세 변 합 36″·$400 / >4 lb: 길이 31″·둘레 54″·2 ft³ 미만·$2,500', best: '4 lb 이하 소형, 또는 20 lb 이하 2 ft³ 미만 박스' },
+    easyship: { k: '운송사별', d: '중개 플랫폼 — 고른 운송사(ePost Global·UPS 등) 방식', rate: '0.5 lb $7.43부터 (ePost Global)', lim: '운송사별', best: '소형·저가 물품' },
+    dream: { k: '35 kg 정액', d: '가방·박스 1개 정액 · 해상 · 통관비 $27 (추가 개당 $13)', rate: 'NY·NJ $253 (개인 가방·박스 $233) + 통관 $27', lim: '35 kg(77 lb) · 개인 가방 90×57×30 cm · 개인 박스 세 변 합 160 cm · 드림박스 80×50×40 cm', best: '개인 박스 77 lb 가득 → $260, lb당 $3.38 (해상)' },
+    sth: { k: 'kg 단가 $8+$3/kg', d: '1 kg $8 · 이후 kg당 $3 (30 kg $95.49) · 부피무게·올림 규칙 비공개 · LA 출발', rate: '5 kg $20 · 10 kg $35 · 20 kg $65', lim: '일반 30 kg·한 변 100 cm·세 변 합 160 cm 미만 · 이사화물 제한 없음', best: '무거울수록 kg당 $3에 수렴 — 캘리포니아 선배송비 별도' },
+    ssayo: { k: '3 lb까지 $8', d: '3 lb(1.5 kg)까지 $8 정액 · 그 이상·이삿짐은 비공개', rate: '≤3 lb $8 · 이후 문의', lim: '비공개', best: '3 lb 이하 소형 (서류 외 소품)' },
+    nonstop: { k: '박스 단위 (항공)', d: '귀국이사 박스 단위 요금 · 박스당 40 lb · 세 변 합 52″', rate: '견적 (리뷰상 $130/박스)', lim: '40 lb · 52″', best: '40 lb 꽉 채운 20×20×12″ 박스' },
+    freight: { k: 'kg 단가·최소운임', d: '항공·해상 화물 — kg 또는 CBM 단가 + 최소운임·통관·창고비', rate: '견적', lim: '업체 확인', best: '여러 박스·66 lb 이상' }
+  };
+  const mTag = o => { const m = MDX()[o.id] || {}; const t = m.std ? `<em class="dts-m">표준${m.est ? '·추정' : ''}</em>` : `<em class="dts-m ind">${esc(m.k || '독립')}</em>`; return o.cm ? `<!--nocv-->${t}<!--/nocv-->` : t; };
+
+  // ------------------------------------------------------------------ community mentions (C) — personal experiences, dated; never used for pricing
+  const MM = 'https://www.milemoa.com/bbs/board/';
+  const KR_IDS = ['sopoya', 'samsung', 'cj', 'hanjin', 'dk', 'lulu', 'ssayo'];
+  const COMM = [
+    { on: ['dream'], src: '마일모아', when: '약 2019', url: MM + '6581767', t: '큰 짐은 드림백이 가장 싸고 편하다는 추천 여러 개 — 근처 UPS에 맡기면 끝, 배로 가서 1–2달, 무게 대비 가성비 좋음' },
+    { on: ['dream'], src: '마일모아', when: '약 2022', url: MM + '9285452', t: '귀국 때 드림백 이용 — 신청하면 이민가방이 집으로 오고, 싸서 동네 UPS에 맡겨 한국 집에서 받음' },
+    { on: KR_IDS.concat(['kt']), src: '마일모아', when: '약 2019', url: MM + '6737013', t: '큰 박스는 우체국이 한인택배보다 3–4배 비쌀 것 · 한인택배는 대부분 항공이라 배편보다는 비쌈' },
+    { on: KR_IDS, src: 'WorkingUS', when: '2024-02', url: 'https://www.workingus.com/?p=3850550', t: '간단한 택배는 한인택배가 가장 빠르고 싸다 · LA의 한국 택배회사로 보내 배송대행시키는 방법도 사용' },
+    { on: KR_IDS, src: '마일모아', when: '약 2019', url: MM + '6581767', t: '한인 거주 지역이면 동네 한인택배가 UPS·FedEx·USPS보다 싸고, 한인 배송대행업체가 가장 싸다' },
+    { on: ['ups', 'fedex', 'dhl', 'fedexbox'], src: '마일모아', when: '약 2019', url: MM + '6581767', t: 'FedEx로 보내고 청구서를 받아보면 다시는 안 쓴다 — 특송 정가는 매우 비쌈' },
+    { on: ['pirate', 'fcpis', 'pmi', 'ups', 'upssv'], src: 'WorkingUS', when: '2026-04', url: 'https://www.workingus.com/?p=3963154', t: 'Pirate Ship이 미국→한국 가장 싸다 — 동네 UPS·USPS 창구보다 사이트 라벨이 더 쌈' },
+    { on: ['fr', 'fcpis'], src: '마일모아', when: '약 2018·2021', url: MM + '4495432', t: '가벼운 물건은 USPS Padded Flat Rate Envelope(9½×12½″)나 창구 완충 봉투가 Flat Rate 박스보다 유리' },
+    { on: ['pmi', 'fr', 'fcpis', 'pmei'], src: '마일모아', when: '약 2020', url: MM + '7783988', t: '뉴욕발 Small Flat Rate는 10일 만에 도착했지만, 다른 USPS 소포는 4주간 추적이 멈춘 사례도' },
+    { on: ['kt', 'sth'], src: '마일모아', when: '약 2019', url: MM + '6737013', t: 'LA 한인택배는 lb 단가가 낮다(첫 lb $5.99 + lb당 $1.5 사례) — 단, 실제로는 크기 때문에 더 나왔다는 댓글도' },
+    { on: ['dream', 'freight', 'nonstop', 'sth'], kind: 'move', src: '마일모아', when: '약 2020', url: MM + '7439298', t: '귀국 이삿짐은 쓰던 물건만 면세(새 물건 X, 택 제거) · 박스에 "귀국 이삿짐" 표기 · 박스 단위라 무거울수록 이득' },
+    { on: ['nonstop'], src: 'Google 리뷰 (논스톱박스 사이트 게재)', when: '2026', url: 'https://nonstopbox.com/', t: '시애틀→아산 박스 8개, 박스당 $130 · 이사자 통관으로 관세 없음' },
+    { on: ['ssayo', 'pmi', 'fr'], src: 'paperofmorning 블로그', when: '2025-04', url: 'https://paperofmorning.com/ (싸요택배 Click-N-Ship 후기)', t: '보스턴 근교 3.4 kg — USPS 직송 견적 $117 vs USPS로 NJ 싸요택배에 보내기 $16.65 + 국제 약 $21 + 통관 $2 ≈ $39.65 (약 66% 절감) · 글의 총액 $23.65는 합산 오류' },
+    { on: KR_IDS.concat(['ups', 'fedex']), src: 'ttgui 티스토리', when: '2023-11', url: 'https://ttgui.tistory.com/entry/uncle', t: '크고 무거운 박스 — FedEx 최저 견적 $800, NJ 삼촌택배(UPS 경유) $40' },
+    { on: ['dream', 'freight', 'nonstop'], src: '미주중앙일보 Q&A (CA)', when: '2021-05', url: 'https://ask.koreadaily.com/ (qna 117276)', t: '짐이 적으면 항공 택배, 크거나 많으면 선편 — 무게로 전화 견적 비교 권장' }
+  ];
+  // claims seen in other reviews that could not be verified at the source (shown separately, never used)
+  const UNVERIFIED = [
+    ['네이버 블로그 (접근 차단)', '한진 첫 1 lb $25 + lb당 $4 · 한미포스트 10 lb $57 · 싼택배 $5부터 · KT Express $6.99부터 (LA·CA 기준)'],
+    ['MissyUSA (원문 미확인)', '2024 캘리포니아 한성택배 12×12×12″ 7 lb $20 — 뉴욕 요금 아님'],
+    ['Reddit (원문 링크 없음)', '2026-04 한국계 업체 견적이 같은 박스에 약 2배 차이 · 2024 배송대행 항공 50 lb 약 $110 (미국 내 선배송 별도) · 동부 특송 50 lb 약 $350'],
+    ['드림백 후기 (업체 게시, 원문 미확인)', '2025 드림백 2개 $336 · 두 달 이내 도착'],
+    ['다른 검토 자료', '해상 Door-to-Door 50 lb 약 $100 (2026-04, 업체명 미공개)'],
+    ['다른 검토 자료', 'Pirate Ship SER 2024 요금표(0.5 lb $12.99 · 4 lb $36.99)에 "2026년 $1씩 인상" 적용 — 실측과 다름 (현재 0.5 lb $14.99 · 4 lb $33.99)'],
+    ['다른 검토 자료', 'Easyship 0.5 lb ePost Global $13.33·Priority Parcel $14.09·Passport $15.53 — 재확인 시점 페이지는 $7.43·$7.50·$17.33 (요금 수시 변동)'],
+    ['다른 검토 자료', 'KT Express 다른 페이지에 "첫 1 lb $15" 옛 안내 — ktxpress.com 메인에는 가격 없음, 공식 outbound 페이지는 $6.99']
+  ];
+  COMM.forEach((c, i) => { c.id = 'c' + (i + 1); });
+  const commFor = id => COMM.filter(c => c.on.includes(id));
+  const cMark = id => { const n = commFor(id).length; return n ? `<a class="dts-c" data-dts-c="o:${id}" title="커뮤니티 언급 ${n}건">C${n > 1 ? n : ''}</a>` : ''; };
+  const cKind = k => { const n = COMM.filter(c => c.kind === k).length; return n ? `<a class="dts-c" data-dts-c="k:${k}">C</a>` : ''; };
+
+  function ctxFor(L, W, H, lb, o, noVol) {
+    const dims = [L, W, H].sort((a, b) => b - a), vol = L * W * H;
+    if (o.cm) {   // 한국발: cm³ ÷ div(6,000) → kg, 상품별 kg 구간 올림 (EMS 서류 2 kg 이하는 부피무게 없음 — 고시 9항)
+      const nv = noVol || (o.docNoVol && st.kind === 'docs' && lb * KG <= 2);
+      const volKg = !nv && o.div ? vol * 16.387064 / o.div : 0;
+      const kg = Math.max(lb * KG, volKg), billKg = o.kgBill(kg);
+      return { dims, act: lb, val: st.val, bill: billKg / KG, billKg, dimLb: volKg / KG, kg };
+    }
+    const dimLb = !noVol && o.div && (!o.divMin || vol >= o.divMin) ? vol / o.div : 0;
+    const bill = Math.max(1, Math.ceil(Math.max(lb, dimLb) - 1e-9));
+    return { dims, act: lb, val: st.val, bill, dimLb };
+  }
+
+  // quotes: valid = same box & weight & ≤30 days; similar = same box, weight ±0.5 lb (reference only)
+  function quoteState(id) {
+    const list = quotes[id] || [], S = sig();
+    const same = list.filter(q => q.sig === S).sort((a, b) => (b.at > a.at ? 1 : -1));
+    const valid = same.find(q => ageDays(q.at) <= QUOTE_DAYS);
+    const expired = !valid && same[0];
+    const similar = !valid && list.filter(q => q.sig !== S && Math.abs(q.L - st.L) < 0.01 && Math.abs(q.W - st.W) < 0.01 && Math.abs(q.H - st.H) < 0.01 && Math.abs(q.lb - st.lb) <= 0.5)
+      .sort((a, b) => (b.at > a.at ? 1 : -1))[0];
+    return { valid, expired, similar, last: list.slice().sort((a, b) => (b.at > a.at ? 1 : -1))[0] };
+  }
+
+  function compute() {
+    const priced = [], cond = [], open = [], skipped = [];
+    for (const o of cur()) {
+      if (o.kinds && !o.kinds.includes(st.kind)) continue;
+      const c = ctxFor(st.L, st.W, st.H, st.lb, o);
+      const why = o.elig ? o.elig(c) : null;
+      if (why) { skipped.push(`${o.name} (${why})`); continue; }
+      const basis = o.div ? (c.dimLb > st.lb ? '부피' : '실') : (o.flat ? '정액' : '실');
+      const cat = catNow(), row = { o, dimLb: c.dimLb, bill: c.bill, billKg: c.billKg, basis, inCat: cat === 'all' || cat === o.cat, adds: [], unknown: [] };
+      if (o.price) {
+        const r = o.price(c);
+        if (!r) { skipped.push(o.name); continue; }
+        if (r.hide) continue;
+        if (r.skip) { skipped.push(`${o.name} (${r.skip})`); continue; }
+        if (r.open) { open.push(Object.assign(row, { need: r.open })); continue; }
+        const ad = o.adds ? o.adds(c) : { adds: [], unknown: [] };
+        const addSum = ad.adds.reduce((s, a) => s + a[1], 0);
+        let pAct = null;
+        if (o.div && c.dimLb > st.lb) {
+          const c2 = ctxFor(st.L, st.W, st.H, st.lb, o, true);
+          const r2 = o.price(c2); if (r2 && !r2.open) pAct = r2.p;
+        }
+        const isCond = o.tier === 'cond' || !!r.warn;   // oversize → unknown freight surcharge → not ranked
+        Object.assign(row, r, { base: r.p, adds: ad.adds, unknown: r.warn ? ad.unknown.concat([r.warn + ' (금액 문의)']) : ad.unknown, total: r.p + addSum, pAct, src: isCond ? 'cond' : 'pub' });
+        (isCond ? cond : priced).push(row);
+      } else {
+        const q = quoteState(o.id);
+        const ad = o.adds ? o.adds(c) : { adds: [], unknown: [] };
+        if (q.valid) {
+          const inc = q.valid.inc || {};
+          const unknown = ad.unknown.filter(u => !(inc.pickup && /픽업/.test(u)) && !(inc.pack && /포장/.test(u)));
+          priced.push(Object.assign(row, { base: q.valid.p, total: q.valid.p + ad.adds.reduce((s, a) => s + a[1], 0), adds: ad.adds, unknown, src: 'quote', q: q.valid,
+            note: `내 견적 ${$m(q.valid.p)} (${q.valid.at}${q.valid.incTxt ? ' · ' + q.valid.incTxt : ''})` }));
+        } else open.push(Object.assign(row, { qs: q, adds: ad.adds, unknown: ad.unknown, hint: o.hint ? o.hint(c) : '' }));
+      }
+    }
+    const byTotal = (a, b) => a.total - b.total || (a.o.days[1] || 99) - (b.o.days[1] || 99);
+    priced.sort(byTotal); cond.sort(byTotal);
+    return { priced, cond, open, skipped };
+  }
+  const dayTxt = o => o.dayShort ? o.dayShort : o.dayNote ? '해상 · 수 주' : !o.days[1] ? '업체 확인' : o.days[1] >= 28 ? `${Math.round(o.days[0] / 7)}–${Math.round(o.days[1] / 7)}주` : `${o.days[0]}–${o.days[1]} ${o.dayUnit || '영업일'}`;
+
+  // ================================================================== 🇰🇷 → 🇺🇸 (한국에서 미국으로) — 원화 · 방향 전환 시에만 사용
+  // 출처: 과기부 고시 제2026-46호(국제우편요금, 2026-07-01 시행) · 우정사업본부 국제우편요금 페이지 · 우체국 EMS 요금조회(실측 2026-11-25)
+  const FX = 1340, FX_AT = '2026-11 중순 (₩1,338 · 11/17 종가)';
+  const KR_CHECKED = '2026-11-25';
+  // EMS 비서류 · 미국 (2026-07-01 적용, 추가운송수수료 포함 단일요금)
+  const K_EMS = [[0.5, 39000], [0.75, 42500], [1, 46000], [1.25, 51000], [1.5, 57000], [1.75, 62500], [2, 68500], [2.5, 76500], [3, 86000], [3.5, 96500],
+    [4, 107000], [4.5, 117500], [5, 128500], [5.5, 139500], [6, 150500], [6.5, 161000], [7, 171000], [7.5, 180500], [8, 191000], [8.5, 201500], [9, 212000],
+    [9.5, 223000], [10, 233500], [10.5, 244000], [11, 254500], [11.5, 264000], [12, 273500], [12.5, 283500], [13, 294500], [13.5, 304500], [14, 315000],
+    [14.5, 325500], [15, 336000], [15.5, 346500], [16, 357000], [16.5, 367500], [17, 377500], [17.5, 388500], [18, 398500], [18.5, 409500], [19, 420000],
+    [19.5, 430000], [20, 441000], [20.5, 451000], [21, 461500], [21.5, 472000], [22, 482500], [22.5, 493500], [23, 503500], [23.5, 514000], [24, 524500],
+    [24.5, 535000], [25, 545500], [25.5, 556000], [26, 566500], [26.5, 576500], [27, 587500], [27.5, 597500], [28, 608500], [28.5, 619000], [29, 629000],
+    [29.5, 640000], [30, 650000]];
+  const K_EMS_DOC = [[0.3, 24000], [0.5, 26000], [0.75, 29500], [1, 33000], [1.25, 36500], [1.5, 40000], [1.75, 43500], [2, 47000]];
+  // EMS 프리미엄 (FedEx) · 미국 = 3지역 (2026-04-01 적용) — 우체국 계산기로 미국 5 kg = 109,400원(3지역) 확인
+  const K_PREM = [[0.5, 43800], [1, 54100], [1.5, 63700], [2, 73300], [2.5, 81100], [3, 88900], [3.5, 94000], [4, 99100], [4.5, 104300], [5, 109400],
+    [5.5, 114500], [6, 119700], [6.5, 124800], [7, 129900], [7.5, 134600], [8, 139400], [8.5, 144200], [9, 149000], [9.5, 153600], [10, 158700],
+    [10.5, 164500], [11, 170700], [11.5, 176300], [12, 181600], [12.5, 187000], [13, 192400], [13.5, 197700], [14, 202900], [14.5, 208200], [15, 213500],
+    [15.5, 218800], [16, 224200], [16.5, 229000], [17, 233700], [17.5, 238500], [18, 243300], [18.5, 248000], [19, 252800], [19.5, 257600], [20, 262300],
+    [21, 281100], [22, 290400], [23, 299600], [24, 308600], [25, 317600], [26, 328600], [27, 339600], [28, 350700], [29, 361800], [30, 372800],
+    [31, 394000], [32, 409200], [33, 424400], [34, 439600], [35, 454300], [36, 469300], [37, 484300], [38, 497100], [39, 510000], [40, 522800],
+    [41, 535700], [42, 548500], [43, 561400], [44, 574300], [45, 587100], [46, 600000], [47, 612800], [48, 625600], [49, 638600], [50, 651400],
+    [51, 663500], [52, 675500], [53, 687600], [54, 699800], [55, 711900], [56, 723900], [57, 735900], [58, 748100], [59, 760100], [60, 772200],
+    [61, 784300], [62, 796400], [63, 808500], [64, 820600], [65, 832700], [66, 844800], [67, 856800], [68, 868900], [69, 880900], [70, 893100]];
+  const K_PREM_DOC = [[0.5, 23100], [1, 32200], [1.5, 46300], [2, 57900]];
+  // K-Packet · 미국 (100 g 단위, 2 kg까지)
+  const K_PKT = [8090, 8980, 11060, 13170, 15280, 16910, 18530, 20160, 21780, 23430, 25780, 28130, 30480, 32810, 35160, 37270, 39350, 41440, 43530, 45690];
+  // 국제항공소포 · 미국 (요금표 2017-07-01) + 추가운송수수료 0.5 kg당 3,250원 (우체국 계산기 실측: 1 kg 6,500 · 13.5 kg 87,750)
+  const K_AIR = [[0.5, 23500], [1, 28000], [1.5, 31000], [2, 37000], [2.5, 42500], [3, 48000], [3.5, 54000], [4, 59500], [4.5, 65500], [5, 71000],
+    [5.5, 77000], [6, 82500], [6.5, 88000], [7, 94000], [7.5, 99500], [8, 105500], [8.5, 111000], [9, 117000], [9.5, 122500], [10, 128000],
+    [10.5, 134000], [11, 139500], [11.5, 145500], [12, 151000], [12.5, 157000], [13, 162500], [13.5, 168500], [14, 174000], [14.5, 179500], [15, 185500],
+    [15.5, 191000], [16, 197000], [16.5, 202500], [17, 208500], [17.5, 214000], [18, 219500], [18.5, 225500], [19, 231000], [19.5, 237000], [20, 242500]];
+  const K_AIR_SUR = 3250;
+  // 국제선편소포 · 미국(3지역) 1 · 2 kg 다음 2 kg 단위 + 추가운송수수료 kg당 500원 (실측) · 부피무게 없음 (실측: 50×40×40 cm 2 kg → 2 kg 요금)
+  const K_SEA = [[1, 12000], [2, 18500], [4, 24500], [6, 30500], [8, 37000], [10, 43000], [12, 49000], [14, 55500], [16, 61500], [18, 67500], [20, 74000]];
+  // 보따리익스프레스 (koco-box.com 배송비 조회, 미국 · 2026-11-25 실측 0.5–67.5 kg 전 구간) — FedEx 특송 총액(유류할증료·초과수요 수수료 포함), 0.5 kg 단위
+  const K_BOD_FX = [47300, 52700, 61700, 67900, 76200, 83500, 91100, 102100, 112500, 119800, 127600, 136200, 143700, 150600, 156000, 162800, 170100, 176400, 183000, 191000, 211800, 215400, 219000, 223500, 226900, 230600, 235400, 237000, 242300, 247400, 253400, 259400, 263300, 267600, 273600, 279600, 285500, 291500, 297400, 303400, 309300, 314500, 322200, 329800, 337500, 345200, 352900, 360600, 368300, 376000, 422600, 430200, 438000, 445500, 453000, 460400, 467800, 475300, 482700, 490200, 497600, 505100, 512500, 520000, 527400, 534800, 542300, 549700, 557200, 564600, 572100, 579500, 586900, 594400, 601800, 609300, 616700, 624200, 631600, 639000, 646990, 654980, 662960, 670950, 678940, 686930, 694910, 702900, 710890, 718880, 726860, 734850, 742840, 750830, 758810, 766800, 774790, 782780, 790760, 798750, 806740, 814730, 822710, 830700, 838690, 846680, 854660, 862650, 870640, 878630, 886610, 894600, 902590, 910580, 918560, 926550, 934540, 942530, 950510, 958500, 966490, 974480, 982460, 990450, 998440, 1006430, 1014410, 1022400, 1030390, 1038380, 1046360, 1054350, 1062340, 1070330, 1078310];
+  const BOD_EMS_DISC = 0.9;   // 같은 계산기 EMS = 우체국 정상운임 −10% (60개 구간 모두 공시표와 일치 확인)
+  // ---- 대행사 계산기 실측 (2026-11-25) — 0.5 kg 단위 (index = kg/0.5 − 1) · 택스프리는 1 kg 단위
+  const K_AZ_EX = [51000, 58350, 67690, 77580, 88130, 97360, 105700, 114500, 122740, 133620, 151880, 159240, 168030, 177700, 186370, 195380, 203400, 208000, 216120, 221170, 235680, 245570, 253590, 262490, 270290, 276540, 285210, 295330, 302570, 308270, 313970, 324420, 331340, 337470, 341960, 348760, 353030, 358730, 362110, 366280, 375840, 386940, 394180, 401320, 408560, 415800, 423040, 430300, 437540, 444670, 451910, 459160, 466400, 473640, 480890, 488030, 495280, 511220, 517360, 522960, 533410, 543960, 554390, 564950, 575380, 585930, 596380, 606940, 617370, 627920, 638370, 648930, 659360, 669910, 680350, 690900, 701350, 711900, 722330, 732890, 743340, 753890, 764320, 774880, 785320, 795870, 806310, 816870, 827300, 837850, 848300, 858860, 869290, 879840, 890280, 900840, 911280, 921830, 932270, 942820, 953270, 963820, 974250, 984810, 995250, 1005800, 1016240, 1026800, 1037240, 1047790, 1058230, 1068790, 1079220, 1089770, 1100210, 1110770, 1121210, 1131760, 1142200, 1152760, 1163200, 1173750, 1184190, 1194740, 1205180, 1215730, 1226170, 1236730, 1247170, 1257720, 1268160, 1278720, 1289160, 1299710, 1310140, 1320700, 1331140, 1341690, 1352130, 1362690];
+  const K_AZ_PL = [65710, 79950, 94830, 106470, 118230, 133770, 147870, 162630, 178810, 190970, 202210, 212680, 223010, 233350, 243680, 254020, 264350, 274690, 285020, 295360, 303870, 312260, 320770, 329290, 337670, 346190, 354570, 363090, 371600, 379990, 388500, 396890, 405400, 413790, 422300, 430820, 439200, 447720, 456100, 464620, 475340, 486070, 496790, 507520, 518240, 528970, 539690, 550420, 561140, 571870, 582590, 593320, 604040, 614770, 625490, 636220, 646940, 657670, 668390, 679120, 689840, 700570, 711290, 722020, 732740, 743470, 754190, 764920, 775640, 786370, 797090, 807820, 818540, 829270, 839990, 850720, 861440, 872170, 882890, 893620, 904340, 915070, 925790, 936520, 947240, 957970, 968690, 979420, 990140, 1000870, 1011590, 1022320, 1033040, 1043770, 1054490, 1065220, 1075940, 1086670, 1097390, 1108120, 1118840, 1129570, 1140290, 1151020, 1161740, 1172470, 1183190, 1193920, 1204640, 1215370, 1226090, 1236820, 1247540, 1258270, 1268990, 1279720, 1290440, 1301170, 1311890, 1322620, 1333340, 1344070, 1354790, 1365520, 1376240, 1386970, 1397690, 1408420, 1419140, 1429870, 1440590, 1451320, 1462040, 1472770, 1483490, 1494220, 1504940, 1515670, 1526390, 1537120];
+  const K_AZ_TF = [49400, 76570, 102850, 136970, 165570, 194060, 214720, 233725, 261300, 288875, 316450, 344025, 371600, 399175, 426750, 454325, 481900, 509475, 537050, 564625, 592200, 619775, 647350, 674925, 702500, 730075, 757650, 785225, 812800, 840375, 867950, 895525, 923100, 950675, 978250, 1005825, 1033400, 1060975, 1088550, 1116125, 1143700, 1171275, 1198850, 1226425, 1254000, 1281575, 1309150, 1336725, 1364300, 1391875, 1419450, 1447025, 1474600, 1502175, 1529750, 1557325, 1584900, 1612475, 1640050, 1667625, 1695200, 1722775, 1750350, 1777925, 1805500, 1833075, 1860650, 1888225, 1915800, 1943375];
+  const K_MX = [50000, 59600, 71300, 79900, 89200, 101800, 110200, 119100, 128800, 137700, 151900, 160500, 169000, 178000, 185100, 193600, 201800, 210200, 218600, 228500, 235100, 242700, 250000, 257000, 264300, 271300, 278700, 283700, 287500, 290500, 302600, 309600, 316400, 323300, 330300, 337100, 343800, 348800, 353200, 357900, 373400, 373400, 390100, 390100, 407100, 407100, 423700, 423700, 434400, 434400, 488000, 488000, 504800, 504800, 522000, 522000, 539300, 539300, 556500, 556500];
+  const K_DR_EX = [50800, 61900, 73300, 82400, 91500, 103400, 114300, 125700, 138200, 147500, 160000, 168800, 178800, 188200, 196000, 205000, 215100, 223800, 232800, 243200, 267200, 273100, 278900, 285900, 291600, 297500, 304900, 308500, 310800, 317000, 328000, 333600, 339200, 346600, 352200, 358900, 366200, 371400, 376100, 380800, 389900, 398000, 406500, 415200, 423900, 432600, 441000, 449800, 455300, 460800, 515300, 523900, 532400, 541200, 549900, 558900, 567700, 576400, 585300, 594100];
+  const K_DR_EC = [48800, 58200, 69600, 78200, 87400, 99600, 108000, 116600, 126100, 134900, 148500, 157000, 165300, 174200, 181100, 189400, 197400, 205600, 213900, 223600, 230200, 237600, 244600, 251600, 258600, 265600, 272800, 277700, 281300, 284500, 296600, 303400, 310100, 316900, 323700, 330400, 337000, 341900, 346100, 350500, 364000, 365900, 380400, 382200, 397100, 398900, 413400, 415200, 423800, 425600, 476900, 478700, 493300, 495100, 510200, 512000, 527300, 529100, 544100, 545900];
+  const K_DR_TF = [60400, 75900, 88500, 101200, 113200, 124500, 135700, 147000, 158300, 169600, 179900, 190200, 200500, 210800, 221100, 231400, 241700, 252000, 262300, 272600, 280500, 288300, 296100, 303900, 311700, 319500, 327300, 335200, 343000, 400800, 408600, 416400, 424200, 432000, 439900, 447700, 455500, 463300, 471100, 478900, 489700, 500500, 511300, 522100, 532900, 543700, 554500, 565300, 576100, 586900, 597700, 608500, 619300, 630100, 640900, 651700, 662500, 673300, 684100, 694900];
+  const AZ_PREM_DISC = 0.95;
+  const K_ERUN = [63944, 73653, 81738, 89822, 97540, 104853, 112165, 119478, 126790, 134103, 140847, 147590, 154335, 161078, 167822, 174565, 181310, 188053, 194797, 201540, 206863, 212185, 217507, 222828, 228150, 233472, 238794, 244115, 249438, 254760, 260082, 265403, 270725, 276047, 281369, 286690, 292013, 297335, 302657, 307978, 315007, 322035, 329063, 336090, 343119, 350147, 357175, 364203, 371232, 378260, 385288, 392315, 399344, 406372, 413400, 420428, 427457, 434485, 441513, 448540, 459702, 467238, 474774, 482310, 489847, 497383, 504919, 512455, 519991, 527527, 535063, 542599, 550135, 557671, 565208, 572744, 580280, 587816, 595352, 602888, 610424, 617960, 625496, 633032, 640569, 648105, 655641, 663177, 670713, 678249, 685785, 693321, 700857, 708393, 715930, 723466, 731002, 738538, 746074, 753610, 761146, 768682, 776218, 783754, 791291, 798827, 806363, 813899, 821435, 828971, 836507, 844043, 851579, 859115, 866652, 874188, 881724, 889260, 896796, 904332, 911868, 919404, 926940, 934476, 942013, 949549, 957085, 964621, 972157, 979693, 987229, 994765, 1002301, 1009837, 1017374, 1024910, 1032446, 1039982, 1047518, 1055054];
+  const KTX_USD_KG = 12; // ktxpress.com 계산기 (ktgll.com 단가 API in_kg · 부피 할인 in_dc 0%)
+  const K_BOX = [['1호', 22, 19, 9], ['2호', 27, 18, 15], ['3호', 34, 25, 21], ['4호', 41, 31, 28], ['5호', 48, 38, 34], ['6호', 52, 48, 40]];
+
+  const ceilTo = (v, step) => Math.round(Math.ceil(v / step - 1e-9) * step * 1000) / 1000;
+  const tbl = (T, kg) => { const r = T.find(x => x[0] >= kg - 1e-9); return r || null; };
+  const kgF = v => String(Math.round(v * 100) / 100);
+  // size check in cm: longest side, length + girth, sum of sides
+  const cmDims = c => c.dims.map(d => d * CM);
+  function kSize(c, maxL, maxLG) { const d = cmDims(c); const lg = d[0] + 2 * (d[1] + d[2]); return d[0] > maxL + 0.01 ? `가장 긴 변 ${Math.round(d[0])} cm > ${maxL} cm` : lg > maxLG + 0.01 ? `길이+둘레 ${Math.round(lg)} cm > ${maxLG} cm` : null; }
+
+  // ---- 미국 수입 관세 (CBP) — 2026-07-24부터 한국산 = MFN과 합쳐 12.5% (MFN이 더 높으면 MFN) · 개인 간 선물 $100 이하 면세
+  const giftOK = () => (st.kind === 'goods' || st.kind === 'food') && st.val <= 100;
+  const dutyUSD = () => st.kind === 'docs' || st.kind === 'books' ? 0 : st.kind === 'move' ? null : giftOK() ? 0 : st.val * 0.125;
+  const ddpFee = () => st.kind === 'docs' ? 0 : Math.round((1.04 + 0.1 * (dutyUSD() || 0)) * 1.1 * FX / 10) * 10;
+  const usd = v => '$' + (Math.round(v * 100) / 100).toFixed(v % 1 ? 2 : 0);
+  function kDutyLine() {
+    if (st.kind === 'docs') return '📄 서류·편지 — 관세 없음 (세관신고 불필요) · EMS 서류 요금 적용 · 가벼운 편지는 우체국 항공서신·국제등기도 가능 (창구)';
+    if (st.kind === 'books') return '📚 책·인쇄물 — 관세 0 (MFN 무관세 · 301조 정보자료 제외 안내) · 우체국은 DDP 신고 수수료만';
+    if (st.kind === 'move') return '🧳 이사물품 — 1년 이상 해외에서 사용한 개인 가재도구는 CBP Household Effects 면세 가능 (HTS 9804.00.05) · 새 물건은 과세 · 해외이사 업체 상담';
+    const d = dutyUSD();
+    const head = st.kind === 'food' ? '⚠ 식품: 우체국 EMS 음식물 금지(김치 금속캔 70% 이하 예외) · 화장품·영양제 제한 · FDA 사전신고 — ' : '';
+    return head + (d === 0 ? `✓ $${st.val} 이하 개인 간 선물 — 관세 면제 (bona fide gift · 신고서 Gift 표시)` : `⚠ $${st.val === 500 ? '400+' : st.val} — 전체 가액에 관세 12.5% ≈ ${usd(d)} (₩${Math.round(d * FX).toLocaleString('en-US')}) · MFN이 더 높으면 그 세율 (면 티셔츠 16.5%)`)
+      + ' · 우체국은 접수 때 선납(DDP), 대행사는 발송인 선청구, EMS 프리미엄·특송은 받는 사람 납부, 택스프리는 운송료에 포함';
+  }
+  function kCustoms(o) {
+    if (st.kind === 'docs') return kDutyLine();
+    const fee = ddpFee(), d = dutyUSD() || 0;
+    const dk = `예상 관세 ${usd(d)} (≈₩${Math.round(d * FX).toLocaleString('en-US')})`;
+    const pay = o.pay ? `${o.pay} · ${dk}.` : o.ch === 'incl' ? `${o.name} — 미국 관세·세금이 운송료에 포함 (받는 사람 추가 부담 없음 · 업체 안내) · 별도면 ${dk}.` : o.ch === 'agent' ? `대행사 — 관부가세를 발송인에게 먼저 청구 (보따리 2025-09-04 발송분부터) · ${dk}.` : o.ch === 'ddp' ? `우체국 — 발송인이 접수 때 관세+수수료 선납(DDP · 물품가액 $2,500 이하) · 예상 선납액 ≈ ₩${Math.round(d * FX + fee).toLocaleString('en-US')} (관세 ${usd(d)} + 신고 수수료 ≈₩${fee.toLocaleString('en-US')}: $1.04 + 관세×10%, VAT 포함 · 추정) · 미국 수취인 추가 부담 없음 · 창구에서 사전 동의서 작성.`
+      : o.ch === 'dap' ? 'EMS 프리미엄·특송 — 기본은 미국 수취인이 관세 + 운송사 통관 수수료 납부 (FedEx 2026-07-20 수수료 조정 공지).'
+        : '해상·이사 — 업체가 안내하는 미국 통관 절차 (수취인 서류 필요).';
+    return `${pay} ${kDutyLine()}`;
+  }
+  const kPostAdds = (label) => () => {
+    const a = [], u = [];
+    if (st.pickup) { if (label === 'ems') a.push(['EMS 방문접수 수수료 (1통)', 3000]); else u.push('방문접수 (소포는 창구 접수 권장)'); }
+    if (st.pack) u.push('우체국 박스 구입 (호수별 창구 가격)');
+    if (st.kind === 'food') u.push('식품·화장품 접수 가능 여부 (우체국 확인)');
+    if (st.kind === 'move') u.push('이사물품 통관 서류');
+    return { adds: a, unknown: u };
+  };
+
+  const KP = {
+    post: ['전국 우체국 창구', '가까운 우체국 (인터넷우체국 "우체국 찾기")', 'EMS·EMS 프리미엄·K-Packet·국제소포 접수 · 미국행은 관세 선납(현금·계좌·카드) + 사전 동의서 · 평일 09:00–18:00', 'post'],
+    online: ['인터넷우체국·우체국앱 "국제우편 스마트접수"', 'ems.epost.go.kr', '미리 입력 후 창구에 맡기면 EMS 5% 감액 (비계약 고객, 우체국 감액 기준)', 'post'],
+    visit: ['EMS 방문접수', '인터넷우체국 예약', '1통 3,000원 · 추가 1통 1,000원 · 최대 5,000원', 'post'],
+    call: ['우체국 고객센터', '☎ 1588-1300 (해외 +82-1588-1300)', '평일 09:00–18:00 · 미국행 접수 가능 품목·관세 문의', 'post'],
+    bodd: ['보따리익스프레스 (대행)', 'koco-box.com · 카카오톡 상담', '신청 → 국내 픽업(무료) 또는 창고 발송 → 포장·출고 · 관부가세 발송인 선청구', 'kr'],
+    atoz: ['에이투지 (대행)', 'atoz-express.com · 계산기', '신청 → 국내 픽업 또는 창고 발송 → 출고 · 특송·택스프리·EMS·EMS 프리미엄 · 부가세 별도 표기', 'kr'],
+    doorro: ['도어로 (대행)', 'doorro.com · Q&A 게시판', '⚠ 홈페이지 배너: API 업데이트로 신규 신청 일시 중단 — 접수 가능 여부 먼저 문의', 'kr'],
+    max: ['맥스익스프레스 (대행 · 아마존 FBA)', 'maxexpress.co.kr · 가격 계산', 'UPS 특송 · FBA 창고행 같은 요금 · 30 kg까지 · 선적 전 관세 청구 공지', 'kr'],
+    erun: ['이런택배 (미국 일리노이 업체 · 한국 사무실)', 'erunexpress.com · 역배송 · 카톡 erunexpress', '신청서 작성 → 한국 사무실로 보내기(문앞 픽업 요청 가능) → 무게 측정 후 결제 → 통관·세금 대행 → 미국 배송 · 수취인 문자', 'kr'],
+    ktx: ['KT Express (한국지점 김포)', 'ktxpress.com · ☎ 02-2666-1020', '국내 택배로 김포 한국지점에 보내기 → 신청서 작성 → 국적기 2일 특송 → 미국 지점 수령 또는 집앞 배송 · 한국 선불 또는 미국 착불(달러)', 'kr'],
+    dream: ['현대해운 드림백 (한국 출발)', 'cyhds.com · ☎ 1577-5524', '신청 → 드림백 가방 수령 → 짐 싸기 → 무료 수거(신청 후 약 10영업일) → 해상 → 미국 UPS 배달', 'kr']
+  };
+
+  const KOPTS = [
+    {
+      id: 'kems', cat: 'post', tier: 'pub', ch: 'ddp', cm: 1, docNoVol: 1, name: '우체국 EMS', tag: '전국 우체국 · 관세 선납', div: 6000, days: [3, 4], dayShort: '3–4일 + 통관 (우체국 안내)',
+      kgBill: kg => kg <= 2 ? Math.max(0.5, ceilTo(kg, 0.25)) : ceilTo(kg, 0.5),
+      elig: c => kSize(c, 150, 275),
+      price(c) {
+        if (st.kind === 'docs' && c.kg <= 2) { const r = tbl(K_EMS_DOC, Math.max(0.3, c.kg)); return { p: r[1], billKg: r[0], note: `EMS 서류 ${kgF(r[0])} kg = ₩${r[1].toLocaleString('en-US')} (서류는 부피무게 없음)`, alt: '' }; }
+        if (c.billKg > 30) return { skip: '30 kg 초과' };
+        const r = tbl(K_EMS, c.billKg);
+        return { p: r[1], alt: `앱·인터넷 접수 −5% ${'₩' + Math.round(r[1] * 0.95).toLocaleString('en-US')}`, note: `EMS 비서류 ${kgF(r[0])} kg = ₩${r[1].toLocaleString('en-US')} (2026-07-01 고시 · 추가운송수수료 포함)` };
+      },
+      adds: kPostAdds('ems'),
+      pros: ['공시 요금표 · 전국 우체국 접수', '미국행은 관세를 접수 때 선납(DDP) — 받는 사람 추가 부담 없음', '3 kg까지는 EMS 프리미엄보다 쌈 (공시표 비교) · 대행 접수면 −10%', '인터넷·앱으로 미리 입력하면 5% 감액'],
+      cons: ['부피무게 cm³÷6,000 · 2 kg까지 0.25 kg, 이후 0.5 kg 올림', '최대 30 kg · 길이 1.5 m · 길이+둘레 2.75 m', '음식물 금지(김치 금속캔 예외) · 충전식 배터리 불가 · 향수 불가', '미국행 EMS 배달보장서비스 일시 중지'],
+      how: ['인터넷우체국·우체국앱에서 EMS 접수정보 입력 (HS코드·품명·개수·가격 — USD 권장)', '우체국 창구: 사전 동의서 작성 + 관세·수수료 선납', '운송장으로 행방조회 (ems.epost.go.kr)'],
+      places: ['post', 'online', 'visit', 'call'],
+      src: '우정사업본부 국제우편요금 EMS 비서류(2026-07-01)·서류(2017-07-01) · 과기부 고시 제2026-46호 · 우체국 EMS 요금조회(미국 5 kg 128,500원 실측) · 인터넷우체국 미국행 접수 재개 공지(2025-10-22) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kprem', cat: 'courier', tier: 'pub', ch: 'dap', cm: 1, name: '우체국 EMS 프리미엄 (FedEx)', tag: '우체국 접수 · FedEx 배송', div: 6000, days: [1, 3], dayShort: '3일 이내 + 통관 (우체국 안내)',
+      kgBill: kg => kg <= 20 ? Math.max(0.5, ceilTo(kg, 0.5)) : ceilTo(kg, 1),
+      elig: c => kSize(c, 274, 330),
+      price(c) {
+        if (st.kind === 'docs' && c.kg <= 2) { const r = tbl(K_PREM_DOC, c.kg); return { p: r[1], billKg: r[0], note: `EMS 프리미엄 서류 3지역 ${kgF(r[0])} kg = ₩${r[1].toLocaleString('en-US')}` }; }
+        if (c.billKg > 70) return { skip: '70 kg 초과' };
+        const r = tbl(K_PREM, c.billKg);
+        return { p: r[1], note: `EMS 프리미엄 비서류 3지역 ${kgF(r[0])} kg = ₩${r[1].toLocaleString('en-US')} (2026-04-01 요금표)` };
+      },
+      adds() {
+        const a = [], u = [];
+        if (st.pickup) a.push(['EMS 방문접수 수수료 (1통)', 3000]);
+        if (st.kind !== 'docs' && !(dutyUSD() === 0)) u.push('미국 수취인 관세 + FedEx 통관 수수료');
+        if (st.kind === 'food') u.push('화장품 접수 불가 (FDA 검사 강화) · 식품 확인');
+        if (st.pack) u.push('박스 구입');
+        return { adds: a, unknown: u };
+      },
+      pros: ['3 kg 넘으면 EMS보다 쌈, 무거울수록 차이 큼 (10 kg ₩158,700 vs EMS ₩233,500)', '70 kg까지 · 큰 박스 가능', '배터리 내장 제품 가능 (보조배터리 단독 불가)'],
+      cons: ['부피무게 cm³÷6,000 · 20 kg까지 0.5 kg, 이후 1 kg 올림', '관세는 기본적으로 미국 수취인 부담 + FedEx 수수료', '화장품 미국행 접수 불가'],
+      how: ['우체국 창구에서 "EMS 프리미엄" 요청 (방문접수 시 직원에게 요청) — 에이투지 대행은 −5%, 도어로 "Economy Beta"는 정가와 같음', '2026-04-01부터 해외 배송 FedEx (이전 UPS)', '추적은 EMS 프리미엄 → FedEx 한글 사이트'],
+      places: ['post', 'visit', 'call'],
+      src: '우정사업본부 국제우편요금 EMS프리미엄(2026-04-01) · 우체국 EMS 요금조회(미국 = 3지역, 5 kg 109,400원 실측) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kpkt', cat: 'post', tier: 'cond', ch: 'ddp', cm: 1, kinds: ['goods', 'books', 'food'], name: '우체국 K-Packet', tag: '2 kg 이하 소형 · 온라인 접수', div: 6000, days: [0, 0], dayShort: '배송기간 미공시',
+      kgBill: kg => Math.max(0.1, ceilTo(kg, 0.1)),
+      elig(c) { const d = cmDims(c); return d[0] + d[1] + d[2] > 90.01 ? `세 변 합 ${Math.round(d[0] + d[1] + d[2])} cm > 90 cm` : d[0] > 60.01 ? `긴 변 ${Math.round(d[0])} cm > 60 cm` : null; },
+      price(c) {
+        if (c.billKg > 2) return { skip: '청구무게 2 kg 초과' };
+        const i = Math.round(c.billKg * 10) - 1, p = K_PKT[i];
+        return { p, note: `K-Packet 미국 ${Math.round(c.billKg * 1000)} g까지 = ₩${p.toLocaleString('en-US')} (등기·추적 포함)` };
+      },
+      adds() { const r = kPostAdds('pkt')(); r.unknown.unshift('개인 이용 조건 (K-Packet은 인터넷·계약 접수 상품 — 1588-1300 확인)'); return r; },
+      pros: ['2 kg까지 EMS보다 훨씬 쌈 (2 kg ₩45,690 vs EMS ₩68,500)', '100 g 단위 요금 · 등기(추적) 포함'],
+      cons: ['청구무게(부피 포함) 2 kg 이하 · 세 변 합 90 cm · 긴 변 60 cm', '배송기간 공시 없음 · 미국행은 관세 선납', '개인 이용 가능 여부·접수 방법 확인 필요 → 조건부'],
+      how: ['ems.epost.go.kr K-Packet 안내 확인 → 온라인 접수정보 입력', '우체국 창구 또는 계약 방문접수'],
+      places: ['online', 'call'],
+      src: '우정사업본부 국제우편요금 K-Packet(미국 100 g 8,090원 … 2 kg 45,690원) · 과기부 고시 제2026-46호(K-Packet 부피무게 적용) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kair', cat: 'post', tier: 'pub', ch: 'ddp', cm: 1, kinds: ['goods', 'books', 'food', 'move'], name: '우체국 국제항공소포', tag: '항공 · 20 kg까지', div: 6000, days: [0, 0], dayShort: '항공 · 기간 미공시',
+      kgBill: kg => Math.max(0.5, ceilTo(kg, 0.5)),
+      elig: c => kSize(c, 105, 200),
+      price(c) {
+        if (c.billKg > 20) return { skip: '20 kg 초과' };
+        const r = tbl(K_AIR, c.billKg), sur = K_AIR_SUR * Math.round(r[0] / 0.5);
+        return { p: r[1] + sur, note: `요금표 ${kgF(r[0])} kg ₩${r[1].toLocaleString('en-US')} + 추가운송수수료 ₩${sur.toLocaleString('en-US')} (0.5 kg당 3,250원 · 우체국 계산기 실측)` };
+      },
+      adds: kPostAdds('air'),
+      pros: ['공시 요금 · 전국 우체국', '5.5 kg까지는 EMS·EMS 프리미엄보다 쌈 (5 kg ₩103,500 vs ₩128,500 · ₩109,400)'],
+      cons: ['부피무게 cm³÷6,000 · 0.5 kg 올림 · 20 kg · 길이 1.05 m · 길이+둘레 2 m', '추가운송수수료가 kg당 6,500원으로 큼 — 6 kg부터 EMS 프리미엄이 더 쌈 · EMS보다 느림', '미국 내에서는 보통소포 기록 취급 안 됨 (보험 권장)'],
+      how: ['우체국 창구 접수 (세관신고서 · 관세 선납)', '보험소포로 보내면 추적 가능'],
+      places: ['post', 'call'],
+      src: '우정사업본부 국제우편요금 국제소포(항공 2017-07-01 요금표) · 우체국 요금조회(미국 1·2·3·5·10·20 kg 우편요금+추가운송수수료 실측) · 우정사업본부 국제소포우편 안내 · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'ksea', cat: 'sea', tier: 'pub', ch: 'ddp', cm: 1, kinds: ['goods', 'books', 'food', 'move'], name: '우체국 국제선편소포 (배)', tag: '해상 · 가장 쌈', div: 0, days: [50, 70], dayShort: '해상 · 약 2달',
+      dayNote: '해상 — 미국행 기간 공시 없음 (우체국 안내 예: 캐나다·독일 평균 50–70일)',
+      kgBill: kg => kg <= 1 ? 1 : kg <= 2 ? 2 : ceilTo(kg, 2),
+      elig: c => kSize(c, 105, 200),
+      price(c) {
+        if (c.billKg > 20) return { skip: '20 kg 초과' };
+        const r = tbl(K_SEA, c.billKg), sur = 500 * r[0];
+        return { p: r[1] + sur, note: `선편 ${r[0]} kg 구간 ₩${r[1].toLocaleString('en-US')} + 추가운송수수료 ₩${sur.toLocaleString('en-US')} (kg당 500원 · 실측) · 부피무게 없음` };
+      },
+      adds: kPostAdds('sea'),
+      pros: ['압도적으로 쌈 (10 kg ₩48,000 · 20 kg ₩84,000)', '부피무게 없음 — 크고 가벼운 짐에 유리 (실측 확인)'],
+      cons: ['배로 약 2달 · 급한 물건 불가', '20 kg · 길이 1.05 m · 길이+둘레 2 m · 2 kg 단위 요금', '미국 내 기록 취급 안 됨 (보험 권장) · 관세 선납'],
+      how: ['우체국 창구에서 "선편 소포" 요청', '세관신고서 · 관세 선납 · 보험 권장'],
+      places: ['post', 'call'],
+      src: '우체국 요금조회 국제소포(선편, 미국 = 3지역) 1–20 kg 실측 · 과기부 고시 제2026-46호(선편소포는 부피무게 대상 아님) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kazprem', cat: 'courier', tier: 'pub', ch: 'dap', cm: 1, name: '에이투지 EMS 프리미엄 (−5%)', tag: '대행 · 우체국 접수 → FedEx · 무료 픽업', div: 6000, days: [4, 7], dayShort: '4–7 영업일 (업체 안내)',
+      kgBill: kg => kg <= 20 ? Math.max(0.5, ceilTo(kg, 0.5)) : ceilTo(kg, 1),
+      elig: c => kSize(c, 274, 330),
+      price(c) {
+        if (c.billKg > 70) return { skip: '70 kg 초과' };
+        const r = tbl(K_PREM, c.billKg), p = Math.round(r[1] * AZ_PREM_DISC);
+        return { p, alt: `우체국 정상 ₩${r[1].toLocaleString('en-US')} −5%`, note: `EMS 프리미엄 3지역 ${kgF(r[0])} kg 공시 ₩${r[1].toLocaleString('en-US')} − 5% = ₩${p.toLocaleString('en-US')} (에이투지 계산기 · 0.5–70 kg 모두 공시 × 0.95)` };
+      },
+      adds() { const u = ['부가세 별도 표기 (국제운송은 보통 영세율 — 결제 전 확인)']; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('미국 수취인 관세 + FedEx 통관 수수료'); if (st.kind === 'food') u.push('화장품 미국행 불가 · 식품 확인'); return { adds: [], unknown: u }; },
+      pros: ['8 kg 넘으면 가장 싼 빠른 배송 (KT Express 제외 시 3.5 kg부터) · 10 kg ₩150,765', '우체국 EMS 프리미엄 공시표 −5% (직접 창구는 정가)', '배터리 내장 제품 가능 · 70 kg까지'],
+      cons: ['부피무게 cm³÷6,000 · 20 kg까지 0.5 kg, 이후 1 kg 올림', '관세는 미국 수취인 부담 (기본)', '대행 접수라 1–2일 추가'],
+      how: ['atoz-express.com 계산기 → 신청', '국내 픽업 또는 에이투지 창고 발송 → 우체국 EMS 프리미엄 접수'],
+      places: ['atoz'],
+      src: 'atoz-express.com 계산기 "우체국 EMS 프리미엄 Beta" (미국 0.5–70 kg 실측, 140개 구간 모두 공시표 × 0.95 · 4–7 영업일 · ÷6,000) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kazex', cat: 'courier', tier: 'pub', ch: 'dap', cm: 1, name: '에이투지 특송', tag: '대행 · 가장 빠른 특송 · 70 kg', div: 5000, days: [2, 3],
+      kgBill: kg => Math.max(0.5, ceilTo(kg, 0.5)),
+      elig: c => kSize(c, 274, 330),
+      price(c) { if (c.billKg > 70) return { skip: '70 kg 초과' }; const p = K_AZ_EX[Math.round(c.billKg / 0.5) - 1]; return { p, note: `에이투지 특송 ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (계산기 실측 · 관세·부가세 별도)` }; },
+      adds() { const u = ['부가세 별도 표기 (결제 전 확인)', '외곽지역 수수료 (우편번호별)']; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('미국 관세 (업체 청구 방식 확인)'); if (st.kind === 'food') u.push('육가공품·건강기능식품 불가 → 특송 Plus+'); return { adds: [], unknown: u }; },
+      pros: ['2–3 영업일 — 대행 특송 중 가장 빠름', '70 kg까지 · 무료 픽업'],
+      cons: ['부피무게 cm³÷5,000 (우체국보다 20% 불리)', '같은 무게면 EMS 프리미엄(−5%)보다 비쌈 (5 kg ₩133,620 vs ₩103,930)', '육가공품·건강기능식품 불가'],
+      how: ['atoz-express.com 계산기 → 신청', '국내 픽업 또는 창고 발송 → 출고'],
+      places: ['atoz'],
+      src: 'atoz-express.com 계산기 특송 (미국 0.5–70 kg 실측 · 2–3 영업일 · ÷5,000 · "관세와 부가세 미포함" · 가격표 "부가세 미포함") · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kazpl', cat: 'courier', tier: 'pub', ch: 'dap', cm: 1, kinds: ['goods', 'food'], name: '에이투지 특송 Plus+', tag: '식품 섞인 짐 · 대행', div: 5000, divNote: '업체 미표기 (특송과 같은 ÷5,000 가정)', days: [5, 7],
+      kgBill: kg => Math.max(0.5, ceilTo(kg, 0.5)),
+      elig: c => kSize(c, 274, 330),
+      price(c) { if (c.billKg > 70) return { skip: '70 kg 초과' }; const p = K_AZ_PL[Math.round(c.billKg / 0.5) - 1]; return { p, note: `에이투지 특송 Plus+ ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (계산기 실측)` }; },
+      adds() { const u = ['부가세 별도 표기 (결제 전 확인)', '외곽지역 수수료 (우편번호별)']; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('미국 관세 (업체 청구 방식 확인)'); if (st.kind === 'food') u.push('FDA 사전신고 (식품)'); return { adds: [], unknown: u }; },
+      pros: ['식품이 섞인 짐도 접수 (업체 안내 · 제한 품목 표기 없음)', '70 kg까지'],
+      cons: ['특송보다 비싸고 느림 (5–7 영업일) — 식품이 있을 때만', '부피무게 기준 미표기'],
+      how: ['atoz-express.com 계산기 → 특송 Plus+ 신청'],
+      places: ['atoz'],
+      src: 'atoz-express.com 계산기 특송 Plus+ (미국 0.5–70 kg 실측 · 5–7 영업일 · "식품 포함 혼합 발송") · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kaztf', cat: 'courier', tier: 'pub', ch: 'incl', cm: 1, kinds: ['goods', 'books', 'food'], name: '에이투지 택스프리', tag: '미국 관세·세금 포함 · 1 kg 단위', div: 5000, days: [4, 9],
+      kgBill: kg => Math.max(1, ceilTo(kg, 1)),
+      elig: c => kSize(c, 274, 330),
+      price(c) { if (c.billKg > 70) return { skip: '70 kg 초과' }; const p = K_AZ_TF[Math.round(c.billKg) - 1]; return { p, note: `에이투지 택스프리 ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (미국 관세·세금 포함 · 계산기 실측)` }; },
+      adds() { return { adds: [], unknown: ['부가세(한국) 별도 표기 (결제 전 확인)', '외곽지역 수수료 (우편번호별)'] }; },
+      pros: ['미국 관세·세금이 요금에 포함 — 받는 사람 추가 부담 없음', '$100 넘는 선물·상품이면 관세 12.5%를 따로 안 냄'],
+      cons: ['1 kg 단위 올림 · 부피 cm³÷5,000', '관세 없는 짐($100 이하 선물·책)이면 손해 — 다른 방법이 쌈', '4–9 영업일 · 5.5 kg부터는 도어로 Tax Free가 쌈 (신청 중단 공지)'],
+      how: ['atoz-express.com 계산기 → 택스프리 신청', '국내 픽업 또는 창고 발송'],
+      places: ['atoz'],
+      src: 'atoz-express.com 계산기 택스프리 (미국 1–70 kg 실측 · 4–9 영업일 · 미국 ÷5,000 · "현지 세금까지 운송료에 포함") · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kerun', cat: 'courier', tier: 'pub', ch: 'agent', cm: 1, name: '이런택배 역배송', tag: '대행 · 2–3 영업일 · 통관·세금 대행', div: 5000, days: [2, 3],
+      pay: '이런택배 — 통관·세금 대행 (관세 대납 수수료 $30 · MPF 별도 표기 — 업체 관세 계산기)',
+      kgBill: kg => Math.max(0.5, ceilTo(kg, 0.5)),
+      elig: c => kSize(c, 274, 330),
+      price(c) { if (c.billKg > 70) return { skip: '70 kg 초과 — 업체 문의' }; const p = K_ERUN[Math.round(c.billKg / 0.5) - 1]; return { p, note: `이런택배 ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (역배송 계산기 원화 결제금액 실측 · 업체 환율 ₩1,300)` }; },
+      adds() { const u = ['한국 사무실까지 국내 택배비 (문앞 픽업 요청 가능)']; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('관세 대납 + 수수료 $30'); if (st.kind === 'food') u.push('식품 — 화·월 출고 맞춰 도착 · 상해도 보상 없음'); return { adds: [], unknown: u }; },
+      pros: ['2–3 영업일 (주말·공휴일 제외)', '통관·세금을 대행 — 받는 사람은 문자 받고 수령', '김치 등 식품도 접수 (출고일 맞춰야)'],
+      cons: ['부피무게 cm³÷5,000 · 0.5 kg 올림', '10 kg 넘으면 kg당 약 ₩10,600 — 무거울수록 EMS 프리미엄이 쌈', '관세 대납 수수료 $30 (관세 있을 때)'],
+      how: ['erunexpress.com 역배송 신청서 작성', '박스에 수취인 핸드폰·"이런택배" 적어 한국 사무실로 발송 (픽업 요청 가능)', '무게 측정 후 결제 → 통관·배송'],
+      places: ['erun'],
+      src: 'erunexpress.com 역배송 배송비 계산 (원화 결제금액 0.5–70 kg 실측, 0.5 kg 단위 · 배송기간 2–3일 · "부피무게 = (가로×세로×높이) ÷ 5000") · 관세 계산기 (관세 대납 수수료 $30) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kktx', cat: 'courier', tier: 'pub', ch: 'dap', cm: 1, name: 'KT Express 한미특송', tag: '달러 단일 단가 · 25 kg · 김포 지점으로 발송', div: 6000, days: [2, 2], dayShort: '국적기 2일 특송 (업체 안내)',
+      pay: 'KT Express — 미국 관세 처리 방식 미공시 (업체 확인)',
+      kgBill: kg => Math.max(1, Math.ceil(kg - 1e-9)),
+      elig: c => kSize(c, 274, 330),
+      price(c) {
+        if (c.billKg > 25) return { skip: '25 kg 초과 (계산기 한도) — 업체 문의' };
+        const usd = c.billKg * KTX_USD_KG, p = Math.round(usd * FX);
+        return { p, alt: `달러 요금 · kg당 ₩${Math.round(KTX_USD_KG * FX).toLocaleString('en-US')}`, note: `${kgF(c.billKg)} kg × $${KTX_USD_KG} = $${usd.toFixed(2)} ≈ ₩${p.toLocaleString('en-US')} (달러 요금 · ₩${FX.toLocaleString('en-US')}/$ 환산 · 온라인견적 실측)` };
+      },
+      adds() { const u = ['김포 한국지점까지 국내 택배비', '미국 집앞 배송 — 미국 배송사 경유 (지점 수령 가능)', '달러 결제 — 환율에 따라 원화 금액 변동']; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('미국 관세 (처리 방식 업체 확인)'); if (st.kind === 'food') u.push('육류 포함 가공식품(스팸·육포) 주의'); return { adds: [], unknown: u }; },
+      pros: ['kg당 $12 단일 요금 — 특송 중 가장 쌈 (5 kg ≈ ₩80,400)', '아시아나·대한항공 2일 특송', '한국 선불 또는 미국 착불 가능'],
+      cons: ['1 kg 단위 올림 · 부피 cm³÷6,000 전부 적용', '25 kg까지 (온라인견적 한도)', '김포 지점으로 직접 보내야 함 (픽업 없음)', 'FAQ의 "$11/kg · 부피 50%"는 옛 안내 — 견적기($12 · 부피 100%) 기준'],
+      how: ['ktxpress.com 온라인견적 → 신청서 작성', '국내 택배로 김포 한국지점에 발송', '미국 지점 수령 또는 집앞 배송'],
+      places: ['ktx'],
+      src: 'ktxpress.com 온라인견적 한국→미국 (단가 API in_kg $12 · in_dc 0% · 1–25 kg · "모든 소수점은 올림") · 개인택배 페이지 (국적기 2일 특송) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kmx', cat: 'courier', tier: 'pub', ch: 'agent', cm: 1, name: '맥스익스프레스 UPS', tag: '대행 · 아마존 FBA 같은 요금 · 30 kg', div: 5000, divNote: 'UPS 기준 ÷5,000 (업체 규정은 로그인 필요)', days: [0, 0], dayShort: 'UPS 특송 · 기간 업체 확인',
+      pay: '맥스익스프레스 — 선적 전에 관세를 청구 (업체 공지 "디미니스 폐지에 따른 선적전 관세 청구 안내")',
+      kgBill: kg => kg <= 20 ? Math.max(0.5, ceilTo(kg, 0.5)) : ceilTo(kg, 1),
+      elig: c => kSize(c, 274, 400),
+      price(c) { if (c.billKg > 30) return { skip: '30 kg 초과 (계산기 한도)' }; const p = K_MX[Math.round(c.billKg / 0.5) - 1]; return { p, note: `맥스익스프레스 UPS ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (가격 계산 실측 · 일반·FBA 같은 금액 · 계산기 2026-10-15 업데이트)` }; },
+      adds() { const u = ['외곽지역 수수료 (계산기에서 우편번호 선택 시 추가)', '국내 픽업 (롯데택배 · 추가요금 공지)']; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('관세 — 선적 전 발송인 청구'); return { adds: [], unknown: u }; },
+      pros: ['아마존 FBA 창고행도 같은 요금 — 판매자용', 'UPS 특송'],
+      cons: ['30 kg까지 · 20 kg 넘으면 1 kg 단위', '홈페이지 요금표(5 kg ₩98,400)는 계산기(₩137,700)와 다름 — 계산기 기준', '같은 무게면 EMS 프리미엄이 훨씬 쌈'],
+      how: ['maxexpress.co.kr 가격 계산 → 배송접수', '창고 입고 또는 롯데택배 픽업'],
+      places: ['max'],
+      src: 'maxexpress.co.kr 가격 계산 (미국 일반운송(UPS)·FBA(UPS) 0.5–30 kg 실측, 두 모드 같은 금액 · 30 kg 초과 계산 불가) · 공지사항(2025-10-16 SURGE FEE · 선적전 관세 청구) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kdrex', cat: 'courier', tier: 'cond', ch: 'dap', cm: 1, name: '도어로 특송 Express', tag: '대행 · ESS 수수료 포함 · 신규 신청 중단 공지', div: 5000, days: [0, 0], dayShort: '특송 · 기간 업체 확인',
+      kgBill: kg => Math.max(0.5, ceilTo(kg, 0.5)),
+      elig: c => kSize(c, 274, 330),
+      price(c) { if (c.billKg > 30) return { skip: '30 kg 초과 (계산기 한도)' }; const p = K_DR_EX[Math.round(c.billKg / 0.5) - 1]; return { p, note: `도어로 Express ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (ESS 수수료·유류할증료 포함 · 계산기 실측)` }; },
+      adds() { const u = ['신규 신청 가능 여부 (API 업데이트로 일시 중단 공지)']; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('미국 관세 (업체 확인)'); return { adds: [], unknown: u }; },
+      pros: ['유류할증료·비상수수료·ESS 포함 총액'],
+      cons: ['홈페이지 배너: 신규 신청 일시 중단 → 조건부', '30 kg까지 계산 · 부피 cm³÷5,000', '에이투지 특송과 비슷하거나 비쌈'],
+      how: ['doorro.com 계산기 → Q&A로 접수 가능 여부 확인'],
+      places: ['doorro'],
+      src: 'doorro.com 계산기 개인 (미국 0.5–30 kg 실측 · "특송 5000 · EMS 6000" · "유류할증료·비상수수료 포함") · 홈페이지 배너 신규 신청 중단 안내 · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kdrec', cat: 'courier', tier: 'cond', ch: 'dap', cm: 1, name: '도어로 특송 Economy', tag: '대행 · 추가수수료 포함 · 신규 신청 중단 공지', div: 5000, days: [0, 0], dayShort: '특송 이코노미 · 기간 업체 확인',
+      kgBill: kg => Math.max(0.5, ceilTo(kg, 0.5)),
+      elig: c => kSize(c, 274, 330),
+      price(c) { if (c.billKg > 30) return { skip: '30 kg 초과 (계산기 한도)' }; const p = K_DR_EC[Math.round(c.billKg / 0.5) - 1]; return { p, note: `도어로 Economy ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (추가수수료·유류할증료 포함 · 계산기 실측)` }; },
+      adds() { const u = ['신규 신청 가능 여부 (API 업데이트로 일시 중단 공지)']; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('미국 관세 (업체 확인)'); return { adds: [], unknown: u }; },
+      pros: ['도어로 특송 중 가장 쌈 (5 kg ₩134,900)'],
+      cons: ['홈페이지 배너: 신규 신청 일시 중단 → 조건부', '30 kg까지 계산 · 부피 cm³÷5,000', '같은 무게면 EMS 프리미엄이 쌈'],
+      how: ['doorro.com 계산기 → Q&A로 접수 가능 여부 확인'],
+      places: ['doorro'],
+      src: 'doorro.com 계산기 개인 (미국 0.5–30 kg 실측) · "Economy Beta"는 EMS 프리미엄 공시표와 같은 금액이라 따로 넣지 않음 · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kdrtf', cat: 'courier', tier: 'cond', ch: 'incl', cm: 1, kinds: ['goods', 'books', 'food'], name: '도어로 Standard Tax Free', tag: '대행 · 관세 포함 상품 · 신규 신청 중단 공지', div: 5000, divNote: '업체 미표기 (특송 ÷5,000 가정)', days: [0, 0], dayShort: '일반 · 기간 업체 확인',
+      kgBill: kg => Math.max(0.5, ceilTo(kg, 0.5)),
+      elig: c => kSize(c, 274, 330),
+      price(c) { if (c.billKg > 30) return { skip: '30 kg 초과 (계산기 한도)' }; const p = K_DR_TF[Math.round(c.billKg / 0.5) - 1]; return { p, note: `도어로 Standard Tax Free ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (계산기 실측 · 관세 포함 범위 업체 확인)` }; },
+      adds() { return { adds: [], unknown: ['신규 신청 가능 여부 (API 업데이트로 일시 중단 공지)', '관세·세금 포함 범위 (업체 확인)'] }; },
+      pros: ['관세 포함형 (Tax Free) — 받는 사람 부담 없음 (업체 확인)'],
+      cons: ['홈페이지 배너: 신규 신청 일시 중단 → 조건부', '5 kg 이하는 에이투지 택스프리가 쌈 · 5.5 kg부터는 도어로가 쌈 (10 kg ₩272,600 vs ₩288,875)'],
+      how: ['doorro.com 계산기 → Q&A로 접수 가능 여부 확인'],
+      places: ['doorro'],
+      src: 'doorro.com 계산기 개인 "일반 - Standard Tax Free" (미국 0.5–30 kg 실측) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kdream', cat: 'sea', tier: 'pub', ch: 'sea', cm: 1, name: '현대해운 드림백 (한국 → 뉴욕)', tag: '35 kg 정액 · 해상 · 무료 수거', div: 0, flat: true, days: [0, 0], dayShort: '해상 · 기간 미공시', dayNote: '해상 — 운송기간 공시 없음 · 신청 후 수거까지 약 10영업일 · 미국 내 UPS 배달',
+      kgBill: kg => kg, kinds: ['goods', 'books', 'move'],
+      pay: '드림백 — 미국 도착지 통관 · 새 물건·상업용은 받는 사람이 관세·검사비 부담 (현대해운 안내)',
+      price(c) {
+        const kg = st.lb * KG, d = cmDims(c).slice().sort((a, b) => b - a), sum = d[0] + d[1] + d[2];
+        if (kg > 35) return { skip: `실무게 ${kgs(kg)} kg > 35 kg (나눠서 2개)` };
+        if (sum <= 160.01) return { p: 258000, alt: '드림백 가방 ₩268,000', note: `개인 박스 (세 변 합 ${Math.round(sum)} cm ≤ 160 cm) ₩258,000 — 드림백 가방은 ₩268,000 (NY · 현대해운 한국발 요금)` };
+        if (d[0] <= 90.01 && d[1] <= 57.01 && d[2] <= 30.01) return { p: 268000, note: '드림백 가방 90×57×30 cm에 담기 · NY ₩268,000 (현대해운 한국발 요금)' };
+        return { skip: `세 변 합 ${Math.round(sum)} cm — 개인 박스 160 cm · 드림백 가방 90×57×30 cm 초과` };
+      },
+      adds() { const u = ['수거 신청 후 약 10영업일 · 해상 운송기간 미공시']; if (st.kind !== 'books' && st.kind !== 'move' && dutyUSD() !== 0) u.push('새 물건·상업용 — 미국 관세·검사비 받는 사람 부담'); return { adds: [], unknown: u }; },
+      pros: ['35 kg까지 한 가방 정액 — 무거울수록 이득 (30 kg이면 kg당 약 ₩8,900)', '집 앞 무료 수거 · 미국 내 UPS 배달 · 분실 보험 $450까지'],
+      cons: ['해상이라 느림 (운송기간 미공시)', '음식·액체·의약품·기계류·깨지기 쉬운 물건 불가', '개인 박스는 세 변 합 160 cm 이하 (−₩10,000)'],
+      how: ['cyhds.com 드림백 신청 → 드림백 가방 수령', '35 kg 이하로 짐 싸기 → 무료 수거', '해상 운송 → 미국 통관 → UPS 배달'],
+      places: ['dream'],
+      src: 'cyhds.com 드림백 이용 가격 (한국 → NY ₩268,000 · 개인가방·박스 −₩10,000) · 이용 절차 (35 kg · UPS · 보험 $450 · 금지품목) · 드림백 가방 90×57×30 cm (현대해운 블로그) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kbodfx', cat: 'courier', tier: 'pub', ch: 'agent', cm: 1, pay: '보따리익스프레스 — 관부가세를 발송인에게 먼저 청구 (2025-09-04 발송분부터)', name: '보따리익스프레스 FedEx 특송', tag: '업체 공개 요금 · 유류할증료 포함 · 무료 픽업', div: 5000, days: [2, 4], dayShort: '2–4일 (업체 안내)',
+      kgBill: kg => Math.max(0.5, ceilTo(kg, 0.5)),
+      elig: c => kSize(c, 274, 330),
+      price(c) {
+        if (c.billKg > 67.5) return { skip: '67.5 kg 초과' };
+        const p = K_BOD_FX[Math.round(c.billKg / 0.5) - 1];
+        return { p, note: `보따리 FedEx 특송 ${kgF(c.billKg)} kg = ₩${p.toLocaleString('en-US')} (유류할증료·초과수요 수수료 포함 총액 · koco-box.com 계산기 ${KR_CHECKED})` };
+      },
+      adds() { const u = []; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('관부가세 — 보따리가 발송인에게 먼저 청구'); if (st.kind === 'food') u.push('식품·화장품 가능 여부 (보따리 품목 조회)'); return { adds: [], unknown: u }; },
+      pros: ['유류할증료 포함 총액 공개 · 국내 픽업·재포장 무료', '25 kg 넘어도 67.5 kg까지 · 2–4일', '특송끼리는 가장 쌈 (5 kg ₩119,800 · 에이투지 특송 ₩133,620)'],
+      cons: ['부피무게 cm³÷5,000 (우체국보다 20% 불리) · 0.5 kg 올림', '25 kg 초과·외곽 우편번호·규격 외 물품은 추가요금 가능', '같은 무게면 EMS 프리미엄이 대부분 더 쌈 (에이투지 −5%면 더)'],
+      how: ['koco-box.com 배송비 조회 → 신청', '국내 픽업 또는 보따리 창고로 발송 → 포장·출고', '관부가세는 발송인에게 먼저 청구 (2025-09-04 발송분부터)'],
+      places: ['bodd'],
+      src: 'koco-box.com 배송비 조회 (보따리익스프레스, 미국 0.5–67.5 kg 실측 · 부피 ÷5,000 확인: 50×40×40 cm 2 kg → 16 kg) · boddari-beta.com (유류할증료·초과수요 수수료 포함, 5 kg ₩94,600 표기는 옛 값) · 보따리 카카오채널 공지 · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kbodems', cat: 'post', tier: 'pub', ch: 'agent', cm: 1, docNoVol: 1, name: '대행 EMS (우체국 −10%)', tag: '보따리·에이투지·도어로 같은 할인 · 무료 픽업', div: 6000, days: [3, 7], dayShort: '3–7일 (업체 안내)',
+      kgBill: kg => kg <= 2 ? Math.max(0.5, ceilTo(kg, 0.25)) : ceilTo(kg, 0.5),
+      elig: c => kSize(c, 150, 275),
+      price(c) {
+        if (c.billKg > 30) return { skip: '30 kg 초과' };
+        const r = tbl(K_EMS, c.billKg), p = Math.round(r[1] * BOD_EMS_DISC);
+        return { p, alt: `우체국 정상 ₩${r[1].toLocaleString('en-US')} −10%`, note: `우체국 EMS ${kgF(r[0])} kg 정상운임 ₩${r[1].toLocaleString('en-US')} − 10% = ₩${p.toLocaleString('en-US')} (보따리·에이투지 계산기 · 도어로는 100원 반올림)` };
+      },
+      adds() { const u = []; if (st.kind !== 'docs' && dutyUSD() !== 0) u.push('관부가세 — 대행사가 발송인에게 먼저 청구 (업체별 확인)'); if (st.kind === 'food') u.push('식품 — 우체국 EMS 음식물 금지 기준 동일'); return { adds: [], unknown: u }; },
+      pros: ['우체국 EMS 정상운임에서 10% 할인 (직접 앱 접수는 5%) — 픽업 포함 3.5 kg까지 가장 쌈', '보따리·에이투지·도어로 세 곳 모두 같은 −10% (계산기 실측)', '국내 픽업·재포장 무료'],
+      cons: ['EMS 규정 그대로 (30 kg · 부피 cm³÷6,000 · 음식물 금지)', '대행 절차 1–2일 추가'],
+      how: ['업체 사이트 신청 → 픽업 또는 창고 발송', '업체가 우체국 EMS로 접수 · 관부가세 선청구'],
+      places: ['bodd', 'atoz', 'doorro'],
+      src: 'koco-box.com 배송비 조회 EMS (정상운임·기본할인 10% 표시, 0.5–30 kg 60개 구간 모두 우체국 공시표와 일치) · atoz-express.com 계산기 EMS (0.5–30 kg 모두 공시표 × 0.9) · doorro.com 계산기 "EMS(10% 할인)" (100원 단위) · 확인 ' + KR_CHECKED
+    },
+    {
+      id: 'kmove', cat: 'sea', tier: 'quote', ch: 'sea', cm: 1, name: '해외이사·항공화물 (한국 → 미국)', tag: '대형·여러 박스', div: 0, divNote: '업체 확인', days: [0, 0], kinds: ['move', 'goods'],
+      kgBill: kg => kg,
+      hint: () => '30 kg 넘는 짐 · 여러 박스 — 해외이사 업체 견적',
+      pros: ['무게·박스 수 제한 적음'], cons: ['최소운임·통관·창고비'], how: ['해외이사 업체 2–3곳 견적 비교'], places: [],
+      src: '업체 견적 · 확인 ' + KR_CHECKED
+    }
+  ];
+  const KSTD = '무게 요금표 · 부피무게 cm³÷6,000과 실무게 중 큰 값 · kg 구간 올림 (과기부 고시 제2026-46호)';
+  const KMD = {
+    kems: { std: 1, rate: '0.5 kg ₩39,000 · 1 kg ₩46,000 · 5 kg ₩128,500 · 10 kg ₩233,500 · 30 kg ₩650,000', lim: '30 kg · 길이 1.5 m · 길이+둘레 2.75 m', best: '3 kg 이하 · 실무게 × 6,000 cm³ 이하 박스' },
+    kprem: { k: '20 kg 넘으면 1 kg 단위', d: '부피 cm³÷6,000 · 20 kg까지 0.5 kg, 이후 1 kg 올림 · 70 kg까지', rate: '1 kg ₩54,100 · 5 kg ₩109,400 · 10 kg ₩158,700 · 20 kg ₩262,300 · 30 kg ₩372,800', lim: '70 kg', best: '3 kg 넘는 무거운 짐 (6 kg부터는 항공소포보다도 쌈)' },
+    kpkt: { k: '100 g 단위 · 2 kg', d: '100 g 단위 요금 · 부피 cm³÷6,000 포함 청구 2 kg 이하 · 세 변 합 90 cm', rate: '100 g ₩8,090 · 500 g ₩15,280 · 1 kg ₩23,430 · 2 kg ₩45,690', lim: '2 kg · 세 변 합 90 cm · 긴 변 60 cm', best: '2 kg 이하 소형 (긴 변 60 cm · 세 변 합 90 cm)' },
+    kair: { k: '+추가운송수수료', d: '요금표(2017) + 추가운송수수료 0.5 kg당 3,250원 · 부피 cm³÷6,000 · 0.5 kg 올림', rate: '1 kg ₩34,500 · 5 kg ₩103,500 · 10 kg ₩193,000 · 20 kg ₩372,500', lim: '20 kg · 길이 1.05 m · 길이+둘레 2 m', best: '5.5 kg 이하 · 급하지 않을 때 (6 kg부터 EMS 프리미엄이 쌈)' },
+    ksea: { k: '부피 없음 · 2 kg 구간', d: '1·2 kg 다음 2 kg 단위 + 추가운송수수료 kg당 500원 · 부피무게 없음', rate: '1 kg ₩12,500 · 2 kg ₩19,500 · 10 kg ₩48,000 · 20 kg ₩84,000', lim: '20 kg · 길이 1.05 m · 길이+둘레 2 m', best: '급하지 않은 크고 가벼운 짐 · 짝수 kg 직전까지 채우기' },
+    kdream: { k: '35 kg 정액', d: '가방·박스 1개 정액 · 해상 · 부피무게 없음', rate: 'NY ₩268,000 (개인 박스 ₩258,000)', lim: '35 kg · 드림백 90×57×30 cm · 개인 박스 세 변 합 160 cm', best: '30 kg 넘게 꽉 채운 급하지 않은 짐' },
+    kazprem: { k: '공시 −5% · 대행', d: 'EMS 프리미엄 공시표 × 0.95 · cm³÷6,000 · 20 kg까지 0.5 kg, 이후 1 kg', rate: '1 kg ₩51,395 · 5 kg ₩103,930 · 10 kg ₩150,765 · 20 kg ₩249,185 · 30 kg ₩354,160', lim: '70 kg', best: '8 kg 넘는 짐 — 실무게 기준 최저' },
+    kazex: { k: '부피 ÷5,000 · 대행', d: 'cm³÷5,000 · 0.5 kg 올림 · 관세·부가세 별도', rate: '1 kg ₩58,350 · 5 kg ₩133,620 · 10 kg ₩221,170 · 20 kg ₩366,280 · 30 kg ₩522,960', lim: '70 kg', best: '2–3 영업일 안에 꼭 받아야 할 때' },
+    kazpl: { k: '부피 ÷5,000(가정) · 대행', d: '0.5 kg 올림 · 식품 혼합 가능', rate: '1 kg ₩79,950 · 5 kg ₩190,970 · 10 kg ₩295,360 · 20 kg ₩464,620', lim: '70 kg', best: '식품이 섞인 짐' },
+    kaztf: { k: '관세 포함 · 1 kg 단위', d: 'cm³÷5,000 · 1 kg 올림 · 미국 관세·세금 포함', rate: '1 kg ₩49,400 · 5 kg ₩165,570 · 10 kg ₩288,875 · 20 kg ₩564,625', lim: '70 kg', best: '$100 넘는 물건 · 받는 사람 부담 0' },
+    kerun: { k: '부피 ÷5,000 · 대행', d: '0.5 kg 올림 · 원화 결제금액', rate: '1 kg ₩73,653 · 5 kg ₩134,103 · 10 kg ₩201,540 · 20 kg ₩307,978 · 30 kg ₩448,540', lim: '70 kg (계산기 기준)', best: '2–3일 · 통관 대행 · 식품' },
+    kktx: { k: '달러 단가 · 1 kg 단위', d: 'cm³÷6,000 · 1 kg 올림 · 달러 요금', rate: '1 kg $12 · 5 kg $60 · 10 kg $120 · 20 kg $240 (≈₩16,080/kg)', lim: '25 kg (온라인견적)', best: '25 kg 이하 · 작은 박스 — 가장 싼 빠른 배송' },
+    kmx: { k: '부피 ÷5,000 · 대행', d: 'UPS · 20 kg까지 0.5 kg, 이후 1 kg · 일반·FBA 같은 요금', rate: '1 kg ₩59,600 · 5 kg ₩137,700 · 10 kg ₩228,500 · 20 kg ₩357,900 · 30 kg ₩556,500', lim: '30 kg', best: '아마존 FBA 창고행' },
+    kdrex: { k: '부피 ÷5,000 · 조건부', d: '0.5 kg 올림 · ESS·유류할증료 포함', rate: '1 kg ₩61,900 · 5 kg ₩147,500 · 10 kg ₩243,200 · 20 kg ₩380,800 · 30 kg ₩594,100', lim: '30 kg (계산기)', best: '신청 재개 후' },
+    kdrec: { k: '부피 ÷5,000 · 조건부', d: '0.5 kg 올림 · 추가수수료·유류할증료 포함', rate: '1 kg ₩58,200 · 5 kg ₩134,900 · 10 kg ₩223,600 · 20 kg ₩350,500 · 30 kg ₩545,900', lim: '30 kg (계산기)', best: '신청 재개 후' },
+    kdrtf: { k: '관세 포함 · 조건부', d: '0.5 kg 올림 · Tax Free', rate: '1 kg ₩75,900 · 5 kg ₩169,600 · 10 kg ₩272,600 · 20 kg ₩478,900', lim: '30 kg (계산기)', best: '신청 재개 후 · 관세 있는 짐' },
+    kbodfx: { k: '부피 ÷5,000 · 대행', d: 'cm³÷5,000 · 0.5 kg 올림 · 유류할증료 포함 총액 · 67.5 kg까지', rate: '1 kg ₩52,700 · 5 kg ₩119,800 · 10 kg ₩191,000 · 20 kg ₩303,400 · 30 kg ₩490,200', lim: '67.5 kg (25 kg 초과 추가요금 가능)', best: '박스가 작고 무거운 짐 · 30 kg 넘는 짐' },
+    kbodems: { std: 1, rate: 'EMS 공시 −10% · 1 kg ₩41,400 · 3 kg ₩77,400 · 5 kg ₩115,650 · 10 kg ₩210,150', lim: '30 kg · 길이 1.5 m · 길이+둘레 2.75 m', best: '집 앞 픽업 · 3.5 kg 이하' },
+    kmove: { k: 'kg·CBM 단가', d: '항공·해상 화물 — 최소운임·통관', rate: '견적', lim: '업체 확인', best: '여러 박스' }
+  };
+  const KCATS = [['all', '전체'], ['post', '우체국'], ['courier', '특송'], ['sea', '해상·이사']];
+  const cur = () => isKR() ? KOPTS : OPTS;
+  const KKINDS = KINDS.map(k => k[0] === 'move' ? ['move', '🧳 이사물품 (미국행)'] : k);
+  const kinds = () => isKR() ? KKINDS : KINDS;
+  const unitNow = () => isKR() ? (st.unitK || 'cm') : st.unit;
+  const ALL_OPTS = () => OPTS.concat(KOPTS);
+  const cats = () => isKR() ? KCATS : CATS;
+  const catNow = () => cats().some(c => c[0] === st.cat) ? st.cat : 'all';
+  const MDX = () => isKR() ? KMD : MD;
+  const stdTxt = () => isKR() ? KSTD : STD_TXT;
+  // billed-weight text: kg options show kg, the rest lb
+  const bTxt = r => r.billKg != null ? `${kgF(r.billKg)} kg` : `${r.bill} lb`;
+  // direction's standard volumetric weight (lb) — US: in³÷166 · KR: cm³÷6,000
+  const stdVolLb = () => isKR() ? st.L * st.W * st.H * 16.387064 / 6000 / KG : st.L * st.W * st.H / 166;
+  const stdDivTxt = () => isKR() ? 'cm³÷6,000' : 'in³÷166';
+  const stdVolTxt = () => isKR() ? `${kgs(stdVolLb() * KG)} kg` : `${r1(stdVolLb())} lb`;
+  const volTxt = r => r.billKg != null ? `${kgs(r.dimLb * KG)} kg` : `${r1(r.dimLb)} lb`;
+  // ------------------------------------------------------------------ styles
+  const CSS = `
+  .dts-host{display:flex!important;flex-direction:column!important}
+  .dts-host>iframe{flex:1 1 0!important;min-height:0!important;height:auto!important}
+  #dts-bar{flex:0 0 auto;display:flex;gap:8px;padding:10px 12px;background:#0b141e;border-bottom:1px solid #1f3346}
+  #dts-bar button{flex:1;height:50px;border-radius:12px;border:1px solid #2d4862;background:#142231;color:#c7d6e2;
+    font:700 18px/1 system-ui,'Noto Sans KR',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  #dts-bar button.on{background:#f2b84b;border-color:#f2b84b;color:#1b1300}
+  #dts-send{flex:1 1 0;min-height:0;overflow:hidden;flex-direction:column;-webkit-overflow-scrolling:touch;background:#0e1823;color:#e8f0f8;
+    font:16px/1.45 system-ui,'Noto Sans KR',sans-serif;display:none}
+  #dts-send *{box-sizing:border-box}
+  .dts-wrap{padding:14px 14px 40px;max-width:1100px;margin:0 auto}
+  .dts-top{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px;align-items:start}
+  .dts-card{background:#142231;border:1px solid #223a52;border-radius:14px;padding:12px}
+  .dts-boxsvg{width:100%;height:auto;display:block}
+  .dts-boxcap{font-size:14.5px;color:#c7d6e2;margin-top:4px;text-align:center}
+  .dts-boxcap b{color:#f2b84b}
+  .dts-boxcap .w{color:#8fb3cc}
+  .dts-in{display:grid;gap:8px}
+  .dts-row{display:grid;grid-template-columns:74px 50px 1fr 50px;gap:6px;align-items:center}
+  .dts-row label{font-weight:700;color:#c7d6e2;font-size:15px}
+  .dts-row label small{display:block;font-weight:500;color:#7f9bb1;font-size:12px}
+  .dts-step{height:46px;border-radius:10px;border:1px solid #2d4862;background:#1a2c3e;color:#e8f0f8;font:700 24px/1 system-ui;cursor:pointer;touch-action:manipulation}
+  .dts-step:active{background:#26405a}
+  .dts-val{height:46px;border-radius:10px;border:1px solid #39597a;background:#0e1823;color:#fff;font:700 21px/46px system-ui;text-align:center;cursor:pointer;white-space:nowrap}
+  .dts-val small{font-size:13px;color:#8fb3cc;font-weight:600;margin-left:4px}
+  .dts-seg{display:flex;gap:6px;flex-wrap:wrap}
+  .dts-chip{padding:7px 11px;border-radius:999px;border:1px solid #2d4862;background:#1a2c3e;color:#c7d6e2;font:600 14px/1.1 system-ui,'Noto Sans KR';cursor:pointer}
+  .dts-chip.on{background:#2b4a68;border-color:#7fc8ff;color:#fff}
+  .dts-sub{font-size:13px;color:#7f9bb1;margin:2px 0 0}
+  .dts-best{margin:14px 0 10px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dts-best div{background:#13261c;border:1px solid #2c6b4d;border-radius:12px;padding:10px 12px;cursor:pointer}
+  .dts-best div.fast{background:#1c2033;border-color:#4b5a9a}
+  .dts-best small{display:block;color:#9fc9b2;font-size:13px}
+  .dts-best div.fast small{color:#aab4e6}
+  .dts-best b{font-size:18px}
+  .dts-best em{font-style:normal;float:right;font-size:20px;font-weight:800;color:#3ecf8e}
+  .dts-best div.fast em{color:#9fb0ff}
+  .dts-h{display:flex;align-items:baseline;justify-content:space-between;margin:16px 2px 8px}
+  .dts-h h3{margin:0;font-size:18px}
+  .dts-h span{font-size:13px;color:#7f9bb1}
+  .dts-list{display:grid;gap:8px}
+  .dts-opt{display:grid;grid-template-columns:34px minmax(0,1fr) auto auto;gap:10px;align-items:center;background:#142231;border:1px solid #223a52;border-radius:12px;padding:10px 10px 10px 12px;cursor:pointer}
+  .dts-opt.sel{border-color:#f2b84b;box-shadow:0 0 0 1px #f2b84b inset}
+  .dts-rank{width:30px;height:30px;border-radius:50%;background:#1f3346;color:#c7d6e2;font:800 15px/30px system-ui;text-align:center}
+  .dts-opt:first-child .dts-rank{background:#3ecf8e;color:#002414}
+  .dts-nm{min-width:0}
+  .dts-nm b{display:block;font-size:16.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dts-nm span{display:block;font-size:13.5px;color:#8fb3cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dts-nm i{font-style:normal;padding:0 6px;border-radius:6px;font-size:12px;font-weight:700;margin-right:4px}
+  .dts-nm i.v{background:#4a2f12;color:#f2b84b}
+  .dts-nm i.a{background:#163a2a;color:#3ecf8e}
+  .dts-nm i.f{background:#202a4a;color:#9fb0ff}
+  .dts-pr{text-align:right;white-space:nowrap}
+  .dts-pr b{font-size:21px;font-weight:800}
+  .dts-pr small{display:block;font-size:12px;color:#7f9bb1}
+  .dts-more{height:40px;padding:0 12px;border-radius:10px;border:1px solid #2d4862;background:#1a2c3e;color:#c7d6e2;font:700 14px system-ui,'Noto Sans KR';cursor:pointer}
+  .dts-skip{font-size:13px;color:#6e879b;margin:8px 2px 0}
+  .dts-info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+  .dts-info button{min-height:64px;border-radius:12px;border:1px solid #223a52;background:#142231;color:#e8f0f8;font:700 15px/1.25 system-ui,'Noto Sans KR';cursor:pointer;padding:8px}
+  .dts-info button small{display:block;font-weight:500;color:#7f9bb1;font-size:12px;margin-top:3px}
+  .dts-note{font-size:12.5px;color:#6e879b;margin-top:12px;line-height:1.5}
+  .dts-ov{position:fixed;inset:0;background:rgba(3,8,14,.62);z-index:2147481500}
+  .dts-pop{position:fixed;left:50%;top:6vh;transform:translateX(-50%);width:min(880px,94vw);height:min(80vh,1250px);display:flex;flex-direction:column;
+    background:#101c28;border:1px solid #2d4862;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);z-index:2147481501;color:#e8f0f8;
+    font:16px/1.5 system-ui,'Noto Sans KR',sans-serif;overflow:hidden}
+  .dts-pop *{box-sizing:border-box}
+  .dts-ph{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #223a52;background:#142231}
+  .dts-ph h4{margin:0;font-size:19px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dts-ph button{height:44px;padding:0 16px;border-radius:10px;border:1px solid #2d4862;background:#1a2c3e;color:#e8f0f8;font:700 16px system-ui,'Noto Sans KR';cursor:pointer}
+  .dts-pb{flex:1 1 auto;overflow:auto;padding:14px 18px 24px;-webkit-overflow-scrolling:touch}
+  .dts-pb h5{margin:16px 0 6px;font-size:15.5px;color:#f2b84b}
+  .dts-pb h5:first-child{margin-top:0}
+  .dts-pb ul{margin:0;padding-left:20px}
+  .dts-pb li{margin:3px 0}
+  .dts-kv{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;font-size:15px}
+  .dts-kv dt{color:#8fb3cc}
+  .dts-kv dd{margin:0}
+  .dts-pl{border:1px solid #223a52;border-radius:10px;padding:8px 10px;margin:6px 0;background:#142231}
+  .dts-pl b{display:block}
+  .dts-pl span{display:block;color:#c7d6e2;font-size:14.5px}
+  .dts-pl small{color:#7f9bb1;font-size:13px}
+  .dts-tb{width:100%;border-collapse:collapse;font-size:14.5px}
+  .dts-tb th,.dts-tb td{border-bottom:1px solid #223a52;padding:6px 6px;text-align:left}
+  .dts-tb th{color:#8fb3cc;font-weight:600}
+  .dts-src{font-size:12.5px;color:#6e879b;margin-top:14px}
+  .dts-kp{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:420px;margin:8px auto 0}
+  .dts-kp button{height:64px;border-radius:12px;border:1px solid #2d4862;background:#1a2c3e;color:#fff;font:700 26px system-ui;cursor:pointer}
+  .dts-kpv{font:800 40px/1.2 system-ui;text-align:center;color:#f2b84b;min-height:52px}
+  @media (max-width:720px){.dts-top{grid-template-columns:1fr}.dts-info{grid-template-columns:1fr 1fr}.dts-best{grid-template-columns:1fr}
+    .dts-opt{grid-template-columns:30px minmax(0,1fr) auto}.dts-more{display:none}.dts-kv{grid-template-columns:110px 1fr}}
+  .dts-tip{margin-top:6px;font-size:13.5px;color:#9fe3c1;text-align:center;line-height:1.5}
+  .dts-req{background:#0e1823;border:1px dashed #39597a;border-radius:10px;padding:10px 12px;font-size:15px;color:#e8f0f8;user-select:all}
+  .dts-ph .dts-pri,.dts-pri{background:#f2b84b!important;color:#1b1300!important;border-color:#f2b84b!important}
+  .dts-pr i,.dts-pb i.ok,.dts-pb i.q,.dts-pb i.n{font-style:normal;padding:1px 6px;border-radius:6px;font-size:11.5px;font-weight:700}
+  i.ok{background:#163a2a;color:#3ecf8e} i.q{background:#4a3a12;color:#f2b84b} i.n{background:#2a3442;color:#9fb0c2}
+  .dts-opt.open{background:#111d29;border-style:dashed}
+  .dts-opt.open .dts-rank{background:transparent;color:#6e879b}
+  .dts-cats{margin:12px 0 0}
+  .dts-best div.muted{background:#141b26;border-color:#2a3442;cursor:default}
+  .dts-best div.muted b{font-size:14px;color:#9fb0c2;font-weight:600}
+  .dts-h h3 small{font-size:13px;color:#7f9bb1;font-weight:500}
+  .dts-srcs{font-size:13.5px;color:#9fb0c2}
+  .dts-opt.cond{background:#16202c;border-style:dashed;border-color:#5a4a7a}
+  .dts-opt.cond .dts-rank{background:#2a2244;color:#c9b8ff}
+  .dts-opt.open .dts-rank,.dts-opt.open:first-child .dts-rank{background:transparent;color:#6e879b}
+  i.c{background:#2a2244;color:#c9b8ff}
+  .dts-pb i.c,.dts-pb i{font-style:normal;padding:1px 6px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .dts-lab{align-self:center;min-width:52px;font-weight:700;color:#8fb3cc}
+  .dts-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
+  .dts-stats div{background:#0e1823;border:1px solid #223a52;border-radius:10px;padding:6px 4px;text-align:center}
+  .dts-stats b{display:block;font-size:16px;color:#fff}
+  .dts-stats small{display:block;font-size:11.5px;color:#7f9bb1;line-height:1.25}
+  .dts-cost{margin-top:8px}
+  .dts-costbar{display:flex;height:24px;border-radius:8px;overflow:hidden;border:1px solid #39597a}
+  .dts-costbar span{display:flex;align-items:center;justify-content:center;font:700 12px/1 system-ui;white-space:nowrap;overflow:hidden}
+  .dts-costbar .g{background:#1f6f4c;color:#e8fff3}
+  .dts-costbar .a{background:#b7791f;color:#1b1300}
+  .dts-cost small{display:block;font-size:12.5px;color:#c7d6e2;text-align:center;margin-top:3px}
+  .dts-warn{display:grid;gap:3px;margin-top:8px;font-size:13px;color:#ffcf7a}
+  .dts-stale{background:#3a2410;border:1px solid #b7791f;color:#ffd79a;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:14px}
+  .dts-pl small.call{display:block;color:#ffcf7a;font-size:12px;margin-top:2px}
+  .dts-x{height:30px;width:34px;border-radius:8px;border:1px solid #2d4862;background:#1a2c3e;color:#c7d6e2;cursor:pointer}
+  @media (max-width:720px){.dts-stats{grid-template-columns:1fr 1fr}}
+  .dts-m{font-style:normal;font-size:12px;color:#6e879b;font-weight:600;margin-right:6px}
+  .dts-m.ind,.dts-gold{color:#f2b84b!important;font-weight:800!important}
+  .dts-nm em.dts-m.ind{font-size:13px}
+  .dts-h span .dts-m{margin:0 2px}
+  .dts-pr small.ul{color:#6e879b;font-size:11.5px}
+  .dts-info button.gold{border-color:#7a5a1c;background:#231c0e;color:#ffd79a}
+  .dts-stdbox{background:#0e1823;border:1px solid #223a52;border-radius:10px;padding:10px 12px;font-size:15px}
+  .dts-stdbox small{color:#8fb3cc;font-size:13px}
+  .dts-scroll{overflow-x:auto}
+  .dts-ut td,.dts-ut th{text-align:right;white-space:nowrap;font-size:13.5px}
+  .dts-ut td:first-child,.dts-ut th:first-child{text-align:left;white-space:normal;min-width:150px}
+  .dts-ut small{display:block;color:#7f9bb1;font-size:11px;font-weight:500}
+  .dts-ut td.best{background:#13261c;color:#3ecf8e;font-weight:800}
+  .dts-ut td.na{color:#3a5470}
+  .dts-ut tr.cond td{color:#c9b8ff}
+  .dts-smps{display:grid;gap:8px}
+  .dts-smp{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #223a52;border-radius:12px;padding:8px 10px;background:#142231}
+  .dts-smp.now{grid-template-columns:minmax(0,1fr) auto;border-color:#7a5a1c}
+  .dts-smp b{font-size:15.5px}
+  .dts-smp span{display:block;color:#c7d6e2;font-size:14px}
+  .dts-smp small{display:block;color:#7f9bb1;font-size:12.5px}
+  .dts-smp .r{margin-top:3px}
+  .dts-smp .r b.p{color:#3ecf8e;font-size:18px;margin-right:4px}
+  .dts-smp .r small.c{color:#c9b8ff}
+  .dts-mini{width:120px;height:74px;display:block}
+  .dts-best-list{font-size:14px}
+  .dts-best-list li{margin:4px 0}
+  @media (max-width:720px){.dts-smp{grid-template-columns:80px minmax(0,1fr)}.dts-smp .dts-more{display:block;grid-column:1/3}.dts-mini{width:80px;height:50px}}
+  .dts-c,a.dts-c{text-decoration:none;display:inline-block!important;margin-left:6px;padding:0 6px;border-radius:7px;background:#16324d;border:1px solid #3d77a8;color:#8fd0ff;font:800 12px/18px system-ui,sans-serif;vertical-align:2px;cursor:pointer;white-space:nowrap}
+  .dts-chip .dts-c{margin-left:5px;vertical-align:0}
+  .dts-cm{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start;border:1px solid #223a52;border-radius:10px;padding:8px 10px;margin:6px 0;background:#142231}
+  .dts-cm .dts-c{margin:2px 0 0}
+  .dts-cm b{display:block;font-weight:600;font-size:14.5px}
+  .dts-cm small{display:block;color:#7f9bb1;font-size:12.5px}
+  .dts-cm small.u{color:#4f7394;font-size:11.5px;word-break:break-all}
+  .dts-fd td small{display:block;color:#7f9bb1;font-size:12px}
+  .dts-fd tr.best td{background:#13261c}
+  .dts-fd .dts-more{height:34px}
+  @media (max-width:720px){.dts-fd .dts-more{display:inline-block;padding:0 8px}}
+  .dts-wrap{flex:1 1 0;min-height:0;display:flex;flex-direction:column;width:100%;padding:10px 14px 8px}
+  .dts-fixtop{flex:0 0 auto}
+  .dts-mid{flex:1 1 0;min-height:120px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-top:1px solid #223a52;border-bottom:1px solid #223a52;padding:0 2px 10px;margin:0 -2px}
+  .dts-mid .dts-h{position:sticky;top:0;z-index:2;background:#0e1823;margin:0;padding:10px 2px 8px}
+  .dts-fixbot{flex:0 0 auto;padding-top:8px}
+  .dts-fixbot .dts-info{grid-template-columns:repeat(6,minmax(0,1fr));margin-top:0;gap:6px}
+  .dts-fixbot .dts-info button{min-height:54px;font-size:14px;padding:6px 4px}
+  .dts-fixbot .dts-note{margin-top:6px;font-size:11.5px;line-height:1.35}
+  .dts-dir{background:#10243a;border:1px solid #2d5a85;border-radius:10px;padding:6px 12px;margin-bottom:10px;font-size:13.5px;color:#c7d6e2}
+  .dts-dir b{color:#8fd0ff}
+  .dts-dirbox{background:#10243a;border:1px solid #2d5a85;border-radius:10px;padding:9px 12px;font-size:14.5px;margin-bottom:6px}
+  .dts-opt{grid-template-columns:34px minmax(0,1fr) auto 18px!important}
+  .dts-go{color:#4f7394;font:700 24px/1 system-ui;text-align:center}
+  .dts-opt:active{background:#1a2c3e}
+  small.dts-cv{display:inline;font-size:.78em;color:#7f9bb1;font-weight:500;margin-left:3px;white-space:nowrap}
+  small.dts-cv::before{content:'('}small.dts-cv::after{content:')'}
+  .dts-val small.alt{display:block;font-size:12px;line-height:12px;margin:0;color:#6e879b;font-weight:500}
+  .dts-val{line-height:30px!important;padding-top:2px}
+  .dts-best{margin:10px 0 8px}
+  @media (max-width:720px),(max-height:1000px){
+    #dts-send{overflow:auto!important;display:block}
+    .dts-wrap{display:block;flex:none}
+    .dts-mid{overflow:visible;min-height:0;border:0}
+    .dts-mid .dts-h{position:static}
+    .dts-fixbot .dts-info{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media (max-width:720px){.dts-fixbot .dts-info{grid-template-columns:1fr 1fr}.dts-opt{grid-template-columns:30px minmax(0,1fr) auto 14px!important}}
+  .dts-dirtog{display:block;width:100%;margin:0 0 6px;padding:8px 10px 7px;border-radius:12px;border:2px solid #f2b84b;background:linear-gradient(180deg,#1f3346,#16283a);
+    color:#fff;cursor:pointer;text-align:center;font-family:system-ui,'Noto Sans KR',sans-serif;touch-action:manipulation}
+  .dts-dirtog:active{transform:scale(.985);background:#26405a}
+  .dts-dt-row{display:flex;align-items:center;justify-content:center;gap:12px}
+  .dts-dt-c{display:inline-flex;align-items:center;gap:8px}
+  .dts-dt-c b{font:900 26px/1 system-ui,'Noto Sans KR',sans-serif;letter-spacing:.5px}
+  .dts-flag{width:40px;height:27px;border-radius:3px;box-shadow:0 0 0 1px #0e1823;flex:0 0 auto;vertical-align:middle}
+  .dts-arr{width:64px;height:28px;flex:0 0 auto}
+  .dts-arr{transition:transform .25s ease}
+  .dts-dirtog.kr .dts-arr{transform:scaleX(-1)}
+  .dts-dirtog small{display:block;margin-top:5px;font-size:12.5px;color:#a9c0d3;font-weight:600}
+  .dts-dirtog small .sw{display:block;margin-top:2px;color:#f2b84b;font-weight:800;white-space:nowrap}
+  .dts-ph h4 .dts-flag{width:27px;height:18px;margin:0 4px 0 6px;vertical-align:-3px}
+  .dts-fixbot .dts-info.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+  @media (max-width:720px),(max-height:1000px){.dts-fixbot .dts-info.k5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:720px){.dts-fixbot .dts-info.k5{grid-template-columns:1fr 1fr}.dts-dt-c b{font-size:22px}.dts-flag{width:34px;height:23px}}
+`;
+
+  function injectCss() {
+    if (document.getElementById('dts-style')) return;
+    const s = document.createElement('style'); s.id = 'dts-style'; s.textContent = CSS; document.head.appendChild(s);
+  }
+
+  // ------------------------------------------------------------------ box drawing
+  function boxSvg(ratio, row, showPct) {
+    const L = st.L, W = st.W, H = st.H;
+    const k = 0.55, ang = Math.PI / 6, dx = Math.cos(ang) * k, dy = Math.sin(ang) * k;
+    const maxW = 300, maxH = 226;
+    let s = Math.min(maxW / (L + W * dx), maxH / (H + W * dy));
+    let fw = L * s, fh = Math.max(H * s, 16), ddx = W * s * dx, ddy = W * s * dy;
+    const ox = 92 + (maxW - (fw + ddx)) / 2, oy = 44 + ddy + (maxH - (fh + ddy)) / 2;
+    const x0 = ox, y0 = oy, x1 = ox + fw, y1 = oy + fh;            // front face
+    const P = (pts) => pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
+    const fillH = fh * ratio, yf = y1 - fillH;
+    const full = ratio >= 0.999;
+    const lbl = (unitNow() === 'in') ? (v => `${r1(v).replace(/\.0$/, '')}″`) : (v => `${Math.round(v * CM)} cm`);
+    const alt = (unitNow() === 'in') ? (v => `${cvf(v * CM)} cm`) : (v => `${r1(v).replace(/\.0$/, '')}″`);
+    const t2 = (x, v) => `<tspan x="${x}" dy="16" font-size="12.5" font-weight="600" fill="#8fb3cc">${alt(v)}</tspan>`;
+    const kg = st.lb * KG;
+    const pct = Math.round(ratio * 100);
+    const g = [];
+    g.push(`<svg class="dts-boxsvg" viewBox="0 0 460 330" role="img" aria-label="box">`);
+    g.push(`<defs><pattern id="dts-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#3a5470" stroke-width="2"/></pattern></defs>`);
+    // empty faces
+    g.push(`<polygon points="${P([[x0, y0], [x1, y0], [x1 + ddx, y0 - ddy], [x0 + ddx, y0 - ddy]])}" fill="${full ? '#e0a63c' : '#1d3044'}" stroke="#e8c27a" stroke-width="2"/>`);
+    g.push(`<polygon points="${P([[x0, y0], [x1, y0], [x1, y1], [x0, y1]])}" fill="url(#dts-hatch)" stroke="none"/>`);
+    g.push(`<polygon points="${P([[x1, y0], [x1 + ddx, y0 - ddy], [x1 + ddx, y1 - ddy], [x1, y1]])}" fill="url(#dts-hatch)" stroke="none" opacity=".7"/>`);
+    // filled part (real weight share), from the bottom
+    if (fillH > 0.5) {
+      g.push(`<polygon points="${P([[x0, yf], [x1, yf], [x1, y1], [x0, y1]])}" fill="#d9932b"/>`);
+      g.push(`<polygon points="${P([[x1, yf], [x1 + ddx, yf - ddy], [x1 + ddx, y1 - ddy], [x1, y1]])}" fill="#a86c16"/>`);
+      if (!full) g.push(`<polygon points="${P([[x0, yf], [x1, yf], [x1 + ddx, yf - ddy], [x0 + ddx, yf - ddy]])}" fill="#f2b84b" opacity=".85"/>`);
+    }
+    // outline
+    g.push(`<polyline points="${P([[x0, y0], [x0, y1], [x1, y1], [x1 + ddx, y1 - ddy], [x1 + ddx, y0 - ddy]])}" fill="none" stroke="#e8c27a" stroke-width="2.2"/>`);
+    g.push(`<polyline points="${P([[x0, y0], [x1, y0], [x1, y1]])}" fill="none" stroke="#e8c27a" stroke-width="2.2"/>`);
+    g.push(`<line x1="${x1}" y1="${y0}" x2="${x1 + ddx}" y2="${y0 - ddy}" stroke="#e8c27a" stroke-width="2.2"/>`);
+    if (!full && fillH > 0.5) g.push(`<line x1="${x0}" y1="${yf}" x2="${x1}" y2="${yf}" stroke="#fff3d6" stroke-width="1.5" stroke-dasharray="5 4"/>`);
+    // dimension labels
+    g.push(`<g font-family="system-ui,sans-serif" font-weight="700" fill="#e8f0f8" font-size="15">`);
+    g.push(`<text x="${(x0 + x1) / 2}" y="${y1 + 20}" text-anchor="middle">가로 ${lbl(L)} ${'<tspan font-size="12.5" font-weight="600" fill="#8fb3cc">' + alt(L) + '</tspan>'}</text>`);
+    g.push(`<text x="${x0 - 8}" y="${(y0 + y1) / 2 - 6}" text-anchor="end">높이 ${lbl(H)}${t2(x0 - 8, H)}</text>`);
+    const tx = x1 + ddx / 2 + 8, far = tx > 360;
+    const wx = far ? x1 + ddx : tx;
+    g.push(`<text x="${wx}" y="${far ? y1 - ddy + 4 + 16 : y1 - ddy / 2 + 10}" text-anchor="${far ? 'end' : 'start'}">세로 ${lbl(W)}${t2(wx, W)}</text>`);
+    g.push(`</g>`);
+    // centre label on the front face
+    const cy = (y0 + y1) / 2, big = fh > 70;
+    g.push(`<g font-family="system-ui,sans-serif" text-anchor="middle">`);
+    g.push(`<text x="${(x0 + x1) / 2}" y="${big ? cy - 6 : cy + 6}" font-size="${big ? 34 : 22}" font-weight="800" fill="#fff" stroke="#0e1823" stroke-width="4" paint-order="stroke">${showPct ? pct + '%' : '실무게'}</text>`);
+    if (big) g.push(`<text x="${(x0 + x1) / 2}" y="${cy + 22}" font-size="14" font-weight="700" fill="#fff" stroke="#0e1823" stroke-width="3" paint-order="stroke">⚖ ${lbs(st.lb)} lb · ${kgs(kg)} kg</text>`);
+    g.push(`</g>`);
+    // weight tag top-left (only when the box is too flat to carry it)
+    if (!big) g.push(`<g font-family="system-ui,sans-serif"><rect x="8" y="8" rx="9" width="170" height="30" fill="#0e1823" stroke="#39597a"/><text x="18" y="28" font-size="15" font-weight="700" fill="#f2b84b">⚖ 무게 ${lbs(st.lb)} lb (${kgs(kg)} kg)</text></g>`);
+    g.push(`</svg>`);
+    return g.join('');
+  }
+
+
+  // ------------------------------------------------------------------ render
+  let root, last = { priced: [], cond: [], open: [] };
+  // ---- direction toggle (drawn flags — emoji flags are not reliable on the Pi's Chromium)
+  const US_FLAG = (() => {
+    const h = 20 / 13; let g = '<svg class="dts-flag" viewBox="0 0 30 20" aria-label="US"><rect width="30" height="20" fill="#fff"/>';
+    for (let i = 0; i < 13; i += 2) g += `<rect y="${(i * h).toFixed(2)}" width="30" height="${h.toFixed(2)}" fill="#b22234"/>`;
+    g += `<rect width="12.5" height="${(7 * h).toFixed(2)}" fill="#3c3b6e"/>`;
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) g += `<circle cx="${1.4 + c * 2.4 + (r % 2) * 1.2}" cy="${1.4 + r * 2.5}" r=".55" fill="#fff"/>`;
+    return g + '<rect width="30" height="20" fill="none" stroke="#0e1823" stroke-width=".6"/></svg>';
+  })();
+  const KR_FLAG = (() => {
+    const bars = (cx, cy, ang, pat) => `<g transform="translate(${cx} ${cy}) rotate(${ang})">${pat.map((b, i) => { const y = (i - 1) * 1.35 - 0.4; return b ? `<rect x="-2.6" y="${y}" width="5.2" height=".8" fill="#000"/>` : `<rect x="-2.6" y="${y}" width="2.3" height=".8" fill="#000"/><rect x=".3" y="${y}" width="2.3" height=".8" fill="#000"/>`; }).join('')}</g>`;
+    const d = 8.6, ux = 3 / Math.sqrt(13), uy = 2 / Math.sqrt(13);
+    return '<svg class="dts-flag" viewBox="0 0 30 20" aria-label="KR"><rect width="30" height="20" fill="#fff"/>'
+      + '<g transform="rotate(33.69 15 10)"><circle cx="15" cy="10" r="5" fill="#0047a0"/><path d="M10 10a5 5 0 0 1 10 0z" fill="#cd2e3a"/><circle cx="12.5" cy="10" r="2.5" fill="#cd2e3a"/><circle cx="17.5" cy="10" r="2.5" fill="#0047a0"/></g>'
+      + bars(15 - d * ux, 10 - d * uy, 123.69, [1, 1, 1]) + bars(15 + d * ux, 10 + d * uy, 123.69, [0, 0, 0])
+      + bars(15 + d * ux, 10 - d * uy, 56.31, [0, 1, 0]) + bars(15 - d * ux, 10 + d * uy, 56.31, [1, 0, 1])
+      + '<rect width="30" height="20" fill="none" stroke="#9fb3c4" stroke-width=".6"/></svg>';
+  })();
+  const ARROW = '<svg class="dts-arr" viewBox="0 0 64 28" aria-hidden="true"><path d="M2 9h38V1l22 13-22 13v-8H2z" fill="#f2b84b" stroke="#ffe2a3" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+  function dirToggle() {
+    const kr = isKR();
+    const side = (f, n) => `<span class="dts-dt-c">${f}<b>${n}</b></span>`;
+    return `<!--nocv--><button type="button" class="dts-dirtog ${kr ? 'kr' : ''}" data-dts-dir>
+      <span class="dts-dt-row">${side(US_FLAG, '미국')}${ARROW}${side(KR_FLAG, '한국')}</span>
+      <small>${kr ? '한국 우체국 출발 → 뉴욕 Bayside 11360 도착 · 원화(₩) · 미국 수입통관' : '뉴욕 Bayside 11360 출발 → 한국 도착 · 달러($) · 한국 수입통관'} <span class="sw">⇄ 누르면 ${kr ? '미국 → 한국' : '한국 → 미국'}</span></small>
+    </button><!--/nocv-->`;
+  }
+  const allRows = () => last.priced.concat(last.cond, last.open);
+  const findRow = id => allRows().find(r => r.o.id === id);
+  const badge = r => r.src === 'pub' ? '<i class="ok">공시</i>' : r.src === 'quote' ? '<i class="q">내 견적</i>' : r.src === 'cond' ? '<i class="c">조건부</i>' : r.need ? '<i class="n">요금 확인</i>' : '<i class="n">견적 필요</i>';
+  const addTxt = r => {
+    const s = r.adds.reduce((t, a) => t + a[1], 0);
+    return (s ? `운임 ${$m(r.base)} + 추가 ${$m(s)}` : '') + (r.unknown && r.unknown.length ? `${s ? ' · ' : ''}+확인 ${r.unknown.length}` : '');
+  };
+
+  function warnings() {
+    const w = [], s = [st.L, st.W, st.H].sort((a, b) => b - a);
+    if (isKR()) {
+      const kg = st.lb * KG, c = s.map(v => v * CM), lg = c[0] + 2 * (c[1] + c[2]);
+      if (kg > 70) w.push('70 kg 초과 — EMS 프리미엄 한도, 해외이사·화물 견적');
+      else if (kg > 30) w.push('30 kg 초과 — 우체국 EMS 한도 넘음 (EMS 프리미엄 70 kg)');
+      else if (kg > 20) w.push('20 kg 초과 — 국제소포(항공·선편) 한도 넘음');
+      else if (kg > 2) w.push('2 kg 초과 — K-Packet 제외');
+      if (c[0] > 150 || lg > 275) w.push('길이 1.5 m 또는 길이+둘레 2.75 m 초과 — EMS 불가');
+      else if (c[0] > 105 || lg > 200) w.push('길이 1.05 m 또는 길이+둘레 2 m 초과 — 국제소포 불가');
+      return w;
+    }
+    if (st.lb > 66) w.push('66 lb(30 kg) 초과 — 특송·PMEI 한도, 화물 견적');
+    else if (st.lb > 55) w.push('55 lb(25 kg) 초과 — 한인택배 중량화물 추가비');
+    else if (st.lb > 44) w.push('44 lb 초과 — USPS PMI 한국 한도 넘음');
+    else if (st.lb > 20) w.push('20 lb 초과 — USPS Flat Rate·PMEI 공시가·Pirate Ship SER 제외');
+    if ((s[0] + s[1] + s[2]) * CM > 150 || s[0] * CM > 100) w.push('세 변 합 150 cm 또는 한 변 1 m 초과 — 규격(화물) 추가비 가능');
+    return w;
+  }
+  const stale = () => ageDays(CHECKED) > STALE_DAYS;
+
+  function trimTip(row) {
+    if (!row || !row.o.div || row.dimLb <= st.lb) return '';
+    const out = [], kgm = row.billKg != null;
+    for (const cut of kgm ? [2 / CM, 5 / CM] : [1, 2]) {
+      if (st.H - cut < 1) break;
+      const c = ctxFor(st.L, st.W, st.H - cut, st.lb, row.o);
+      if (c.bill >= row.bill - 1e-9) continue;
+      let money = '';
+      if (row.o.price && (row.src === 'pub' || row.src === 'cond')) { const r = row.o.price(c); if (r && !r.open && !r.skip) money = ` · 운임 ${$m(row.base)} → ${$m(r.p)} (−${$m(row.base - r.p)})`; }
+      out.push(kgm ? `높이 ${Math.round(cut * CM)} cm 줄이면 청구 ${kgF(row.billKg)} → ${kgF(c.billKg)} kg${money}` : `높이 ${cut}″ 줄이면 청구 ${row.bill} → ${c.bill} lb${money}`);
+    }
+    return out.length ? `<div class="dts-tip">✂ ${out.join('<br>✂ ')}</div>` : '';
+  }
+
+  function weightStats(row) {
+    if (!row) return '';
+    if (row.billKg != null) {
+      const ak = st.lb * KG, vk = row.dimLb * KG, bk = row.billKg, o = row.o;
+      const cells = [['실무게', `${kgs(ak)} kg`, `${lbs(st.lb)} lb`],
+        ['부피무게', o.div ? `${kgs(vk)} kg` : '없음', o.div ? `cm³÷${o.div.toLocaleString('en-US')}` : `${o.flat ? '정액' : '실무게 과금'} · 표준 ${stdVolTxt()}`],
+        ['청구무게', o.flat ? '정액' : `${kgF(bk)} kg`, o.flat ? '' : `${r1(bk / KG)} lb · 실무게 비중 ${Math.round(Math.min(1, ak / bk) * 100)}%`],
+        ['부피로 추가', o.div && vk > ak ? `+${kgs(Math.max(0, bk - ak))} kg` : '0', o.div && vk > ak ? `${r1(Math.max(0, bk - ak) / KG)} lb` : '']];
+      let bar = '';
+      if (row.pAct && row.base > row.pAct + 0.01) {
+        const g = Math.round(row.pAct / row.base * 100);
+        bar = `<div class="dts-cost"><div class="dts-costbar"><span class="g" style="width:${g}%">실무게 기준 ${$m(row.pAct)}</span><span class="a" style="width:${100 - g}%">+${$m(row.base - row.pAct)}</span></div>
+          <small>운임 ${$m(row.base)} = 실무게 기준 ${$m(row.pAct)} + 부피 때문에 ${$m(row.base - row.pAct)} (${(row.base / row.pAct).toFixed(2)}배)</small></div>`;
+      }
+      return `<!--nocv--><div class="dts-stats">${cells.map(c => `<div><small>${c[0]}</small><b>${c[1]}</b><small>${c[2]}</small></div>`).join('')}</div><!--/nocv-->${bar}`;
+    }
+    const act = st.lb, bill = row.bill || Math.max(1, Math.ceil(act - 1e-9));
+    const extra = Math.max(0, bill - act);
+    const pk = v => `${kgs(v * KG)} kg`;
+    const cells = [['실무게', `${lbs(act)} lb`, pk(act)],
+      ['부피무게', row.o.div ? `${r1(row.dimLb)} lb` : '없음', row.o.div ? `${pk(row.dimLb)} · ÷${row.o.div}` : `${row.o.flat ? '정액' : '실무게 과금'} · 표준 ${stdVolTxt()}`],
+      ['청구무게', row.o.div ? `${bill} lb` : row.o.flat ? '정액' : `${Math.max(1, Math.ceil(act - 1e-9))} lb`, row.o.div ? `${pk(bill)} · 실무게 비중 ${Math.round(Math.min(1, act / bill) * 100)}%` : row.o.flat ? '' : pk(Math.max(1, Math.ceil(act - 1e-9)))],
+      ['부피로 추가', row.o.div && row.dimLb > act ? `+${r1(extra)} lb` : '0', row.o.div && row.dimLb > act ? `${r1(extra * KG)} kg` : '']];
+    let bar = '';
+    if (row.pAct && row.base > row.pAct + 0.01) {
+      const g = Math.round(row.pAct / row.base * 100);
+      bar = `<div class="dts-cost"><div class="dts-costbar"><span class="g" style="width:${g}%">실무게 기준 ${$m(row.pAct)}</span><span class="a" style="width:${100 - g}%">+${$m(row.base - row.pAct)}</span></div>
+        <small>운임 ${$m(row.base)} = 실무게 기준 ${$m(row.pAct)} + 부피 때문에 ${$m(row.base - row.pAct)} (${(row.base / row.pAct).toFixed(2)}배)</small></div>`;
+    }
+    return `<!--nocv--><div class="dts-stats">${cells.map(c => `<div><small>${c[0]}</small><b>${c[1]}</b><small>${c[2]}</small></div>`).join('')}</div><!--/nocv-->${bar}`;
+  }
+
+  function render() {
+    if (!root) return;
+    const res = compute(); last = res;
+    const vis = r => r.inCat;
+    const pricedV = res.priced.filter(vis), condV = res.cond.filter(vis), openV = res.open.filter(vis);
+    const all = pricedV.concat(condV, openV);
+    if (!st.sel || !all.find(r => r.o.id === st.sel)) st.sel = all[0] ? all[0].o.id : null;
+    const row = findRow(st.sel);
+    // box fill: the selected option's volumetric rule, or — when it has none — the standard rule of this direction
+    const useStd = !!row && !row.o.div;
+    const dimLb = row && row.o.div ? row.dimLb : row ? stdVolLb() : 0;
+    const ratio = dimLb > st.lb ? st.lb / dimLb : 1;
+    const u = unitNow() === 'in';
+    const vin = v => u ? nIn(v) : String(Math.round(v * CM));
+    const wv = u ? lbs(st.lb) : kgs(st.lb * KG);
+
+    let cap;
+    const dv = o => o.cm ? `cm³÷${o.div.toLocaleString('en-US')}` : `÷${o.div}`;
+    if (!row) cap = '조건에 맞는 배송 방법이 없습니다 (크기·무게 확인)';
+    else if (!row.o.div) cap = `<b>${esc(row.o.name)}</b>: ${row.o.flat ? '정액 — 크기 제한 안에서는 부피 손해 없음' : row.o.divNote ? '부피무게 기준 ' + esc(row.o.divNote) : '실무게로만 과금 — 부피 손해 없음'}<br><span class="w">그림은 표준(${stdDivTxt()}) 기준 — ${dimLb > st.lb ? `채워진 ${Math.round(ratio * 100)}%만 실제 무게 (부피무게 ${stdVolTxt()})` : `부피무게 ${stdVolTxt()} ≤ 실무게 · 박스 크기 적정`}</span>`;
+    else if (dimLb > st.lb) cap = `<b>${esc(row.o.name)}</b> 기준 (${dv(row.o)}${row.o.divNote ? ' 가정' : ''}) — 채워진 ${Math.round(ratio * 100)}%만 실제 무게, 나머지는 빈 공간 값`;
+    else cap = `<b>${esc(row.o.name)}</b> 기준 (${dv(row.o)}) — 부피무게 ${volTxt(row)} ≤ 실무게 → <b>실무게 과금</b> (박스 크기 적정)`;
+    const kr = isKR();
+
+    const best = pricedV[0];
+    const fast = best && pricedV.filter(r => r !== best && r.o.days[1] && r.o.days[1] < (best.o.days[1] || 99)).sort((a, b) => a.o.days[1] - b.o.days[1] || a.total - b.total)[0];
+    const sizes = kr ? K_BOX.map(b => [`우체국 ${b[0]} ${b[1]}×${b[2]}×${b[3]} cm`, b[1] / CM, b[2] / CM, b[3] / CM])
+      : [['신발상자 14×10×5″', 14, 10, 5], ['소형 12×10×6″', 12, 10, 6], ['14×12×8″', 14, 12, 8], ['16×12×12″', 16, 12, 12], ['18×14×10″', 18, 14, 10], ['18×18×16″', 18, 18, 16]];
+    const same = (a, b) => Math.abs(a - b) < 0.02;
+    const usBoxes = [['USPS Small FR', 'small'], ['USPS Medium FR', 'medium'], ['USPS Large FR', 'large']];
+    const scen = [['패딩·이불 (크고 가벼움)', 18, 18, 16, 4], ['책·소스 (작고 무거움)', 11, 8.5, 5.5, 18], ['선물 상자', 16, 12, 12, 5], ['옷 한 박스', 18, 14, 10, 15], ['귀국 짐', 18, 18, 16, 30], ['서류 봉투', 12, 9, 0.5, 0.25]];
+    const vals = [50, 100, 150, 200, 500];
+    const ws = warnings();
+    const rowHtml = (r, i) => `
+          <div class="dts-opt ${r.o.id === st.sel ? 'sel' : ''} ${r.src === 'pub' || r.src === 'quote' ? '' : r.src === 'cond' ? 'cond' : 'open'}" data-dts-sel="${r.o.id}">
+            <div class="dts-rank">${r.src === 'pub' || r.src === 'quote' ? i + 1 : r.src === 'cond' ? '≈' : '·'}</div>
+            <div class="dts-nm"><b>${esc(r.o.name)}${cMark(r.o.id)}</b>
+              <span>${mTag(r.o)}${r.o.div && !(r.o.flat) ? `<i class="${r.basis === '부피' ? 'v' : 'a'}">${r.basis}무게 ${bTxt(r)}</i>` : r.billKg != null && !r.o.flat ? `<i class="a">실무게 ${bTxt(r)}</i>` : ''}${dayTxt(r.o)} · ${esc(r.o.tag)}</span></div>
+            <div class="dts-pr">${r.total != null ? `<b>${$m(r.total)}</b><small>${badge(r)} ${esc(addTxt(r)) || (r.warn ? '⚠ ' + esc(r.warn) : r.retail && r.retail !== r.base ? `창구 ${$m(r.retail)}` : r.box ? esc(r.box) : '')}</small>${kr ? `<small class="ul">≈$${Math.round(r.total / FX)}${r.alt ? ' · ' + esc(r.alt) : st.lb * KG >= 1 ? ` · 실무게 kg당 ₩${Math.round(r.total / (st.lb * KG)).toLocaleString('en-US')}` : ''}</small>` : st.lb >= 1 ? `<small class="ul">실무게 lb당 $${(r.total / st.lb).toFixed(2)}</small>` : ''}`
+              : `<small>${badge(r)}</small>${r.qs && r.qs.similar ? `<small>유사 조건 ${$m(r.qs.similar.p)} (${r.qs.similar.lb} lb · 참고)</small>` : r.qs && r.qs.expired ? `<small>견적 만료 ${$m(r.qs.expired.p)} (${r.qs.expired.at})</small>` : r.need ? `<small>${esc(r.need)}</small>` : r.hint ? `<small>${esc(r.hint)}</small>` : ''}`}</div>
+            <div class="dts-go">›</div>
+          </div>`;
+
+    const mid = root.querySelector('.dts-mid'), keepTop = mid ? mid.scrollTop : 0;
+    root.innerHTML = annotate(`
+      <div class="dts-wrap"><div class="dts-fixtop">
+        ${stale() ? `<div class="dts-stale">⚠ 요금 데이터 확인일 ${CHECKED} — ${ageDays(CHECKED)}일 경과. ${kr ? '우체국 국제우편 요금(과기부 고시)' : 'USPS Notice 123·소포야 요금표'}가 바뀌었을 수 있으니 업데이트 버전을 확인하세요.</div>` : ''}
+        <div class="dts-top">
+          <div class="dts-card ${kr ? 'kr' : ''}">${dirToggle()}${boxSvg(ratio, row, !!row)}<div class="dts-boxcap">${cap}</div>${weightStats(row)}${trimTip(row)}
+            ${ws.length ? `<div class="dts-warn">${ws.map(x => `<span>⚠ ${esc(x)}</span>`).join('')}</div>` : ''}</div>
+          <div class="dts-card dts-in">
+            <div class="dts-seg">${kinds().map(([k, n]) => `<span class="dts-chip ${st.kind === k ? 'on' : ''}" data-dts-kind="${k}">${n}${kr ? '' : cKind(k)}</span>`).join('')}</div>
+            <div class="dts-seg"><span class="dts-chip ${u ? 'on' : ''}" data-dts-unit="in">in · lb</span><span class="dts-chip ${u ? '' : 'on'}" data-dts-unit="cm">cm · kg</span>
+              <span class="dts-sub" style="margin-left:auto;align-self:center">포장 후 바깥 치수 · 올림</span></div>
+            ${[['L', '가로', 'Length'], ['W', '세로', 'Width'], ['H', '높이', 'Height']].map(([k, ko, en]) => `
+              <div class="dts-row"><label>${ko}<small>${en}</small></label><button class="dts-step" data-dts-step="${k}" data-d="-1">−</button>
+                <div class="dts-val" data-dts-key="${k}"><!--nocv-->${vin(st[k])}<small>${u ? 'in' : 'cm'}</small><small class="alt">${u ? r1(st[k] * CM).replace(/\.0$/, '') + ' cm' : nIn(st[k]) + ' in'}</small><!--/nocv--></div><button class="dts-step" data-dts-step="${k}" data-d="1">+</button></div>`).join('')}
+            <div class="dts-row"><label>무게<small>Weight</small></label><button class="dts-step" data-dts-step="lb" data-d="-1">−</button>
+              <div class="dts-val" data-dts-key="lb"><!--nocv-->${wv}<small>${u ? 'lb' : 'kg'}</small><small class="alt">${u ? kgs(st.lb * KG) + ' kg' : lbs(st.lb) + ' lb'}</small><!--/nocv--></div><button class="dts-step" data-dts-step="lb" data-d="1">+</button></div>
+            <div class="dts-seg"><span class="dts-sub dts-lab">크기</span>${sizes.map(p => `<span class="dts-chip ${!st.frBox && same(st.L, p[1]) && same(st.W, p[2]) && same(st.H, p[3]) ? 'on' : ''}" data-dts-preset="${p.slice(1).join(',')}">${esc(p[0])}</span>`).join('')}
+              ${kr ? '' : usBoxes.map(([n, k]) => `<span class="dts-chip ${st.frBox === k ? 'on' : ''}" data-dts-frbox="${k}">${n}</span>`).join('')}</div>
+            <div class="dts-seg"><span class="dts-sub dts-lab">상황</span>${scen.map(p => `<span class="dts-chip ${st.L === p[1] && st.W === p[2] && st.H === p[3] && st.lb === p[4] ? 'on' : ''}" data-dts-scen="${p.slice(1).join(',')}">${esc(p[0])}</span>`).join('')}</div>
+            <div class="dts-seg" style="align-items:center"><span class="dts-sub dts-lab">물품가액</span>${vals.map(v => `<span class="dts-chip ${st.val === v ? 'on' : ''}" data-dts-val="${v}">${v === 500 ? '$400+' : '$' + v}</span>`).join('')}</div>
+            <div class="dts-seg" style="align-items:center"><span class="dts-sub dts-lab">추가</span>
+              <span class="dts-chip ${st.pack ? 'on' : ''}" data-dts-tog="pack">📦 ${kr ? '박스 구입 필요' : '포장 서비스 필요'}</span><span class="dts-chip ${st.pickup ? 'on' : ''}" data-dts-tog="pickup">🚚 ${kr ? '방문접수 (EMS 3,000원)' : '방문 픽업 필요'}</span></div>
+            <div class="dts-sub">${kr ? `<b>미국 수입통관 (CBP):</b> ${esc(kDutyLine())}` : `<b>한국 수입통관:</b> ${st.kind === 'goods' || st.kind === 'books' ? (st.val > 200 ? '⚠ $200 초과 — 전체 금액에 관세·부가세' : st.val > 150 ? '⚠ $150 초과 — USPS 우편은 과세, 특송·한인택배 목록통관(의류·잡화)은 $200까지 면세' : '✓ $150 이하 — 자가사용·선물 면세 범위')
+              : st.kind === 'food' ? (st.val > 150 ? '⚠ 식품·화장품·영양제는 $150 초과 시 과세 (미국발 $200 특례 없음)' : '✓ $150 이하 면세 · 영양제 6병까지') : st.kind === 'docs' ? '📄 서류 — USPS First-Class Mail·Flat Rate Envelope 포함' : '🧳 이사물품 요건 확인 (가이드 참고)'}`}</div>
+          </div>
+        </div>
+        ${best ? `<div class="dts-best">
+          <div data-dts-open="${best.o.id}"><small>최저 총액 (확인된 요금 · 이 분류)</small><em>${$m(best.total)}</em><b>${esc(best.o.name)}${cMark(best.o.id)}</b><small>${dayTxt(best.o)} · ${best.src === 'pub' ? '공시 요금' : '내 견적'}${best.unknown.length ? ` · +확인 ${best.unknown.length}` : ''}</small></div>
+          ${fast ? `<div class="fast" data-dts-open="${fast.o.id}"><small>더 빠른 선택</small><em>${$m(fast.total)}</em><b>${esc(fast.o.name)}</b><small>${dayTxt(fast.o)} · 차이 ${$m(Math.max(0, fast.total - best.total))}</small></div>` : `<div class="fast muted"><small>더 빠른 선택</small><b>${kr ? '이 조건에서 더 빠른 공시 요금이 없습니다 — 특송 견적을 입력하면 비교' : '특송(UPS·FedEx·DHL) 견적을 입력하면 비교됩니다'}</b></div>`}
+        </div>` : `<div class="dts-best"><div class="fast muted" style="grid-column:1/3"><small>이 분류에는 확인된 요금이 없습니다</small><b>견적을 입력하거나 "전체"로 보세요</b></div></div>`}
+        <div class="dts-seg dts-cats">${cats().map(([k, n]) => `<span class="dts-chip ${catNow() === k ? 'on' : ''}" data-dts-cat="${k}">${n}</span>`).join('')}</div>
+        </div><div class="dts-mid">
+        <div class="dts-h"><h3>확인된 요금 순위 <small>공시 요금표 · 내 견적(같은 박스·${QUOTE_DAYS}일 이내) · 추가비 포함 총액 · 줄을 누르면 상세·견적 창</small></h3><span>${kr ? '<em class="dts-m">표준</em> = 무게표 + 부피 cm³÷6,000 · <em class="dts-m ind">금색</em> = 다른 방식 · ≈$ ₩' + FX.toLocaleString('en-US') + '/$' : '<em class="dts-m">표준</em> = 무게표 + 부피 ÷166 · <em class="dts-m ind">금색</em> = 독립 방식 · <a class="dts-c" data-dts-c="all">C</a> = 커뮤니티 언급'}</span></div>
+        <div class="dts-list">${pricedV.map(rowHtml).join('') || '<div class="dts-skip">이 분류에는 확인된 요금이 없습니다</div>'}</div>
+        ${condV.length ? `<div class="dts-h"><h3>조건부 계산 <small>— 게시 운임으로 계산했지만 접수 방법·선배송·지역 요금 확인 전이라 순위 제외</small></h3></div>
+        <div class="dts-list">${condV.map(rowHtml).join('')}</div>` : ''}
+        ${openV.length ? `<div class="dts-h"><h3>견적 필요 <small>— 공개 요금표 없음 · 받은 견적을 입력하면 위 순위에 들어갑니다</small></h3></div>
+        <div class="dts-list">${openV.map(rowHtml).join('')}</div>` : ''}
+        ${res.skipped.length ? `<div class="dts-skip">해당 없음 (크기·무게·가액 제한): ${res.skipped.map(esc).join(' · ')}</div>` : ''}
+        </div><div class="dts-fixbot">
+        ${kr ? `<div class="dts-info k5">
+          <button class="gold" data-dts-info="methods">📐 요금 방식<small>우체국 상품별 · 단가표</small></button>
+          <button data-dts-info="places">📍 접수 방법<small>한국 우체국</small></button>
+          <button data-dts-info="boxes">📦 박스<small>우체국 1–6호 · 부피무게</small></button>
+          <button data-dts-info="customs">🛃 통관·금지품목<small>미국 수입 (CBP) 기준</small></button>
+          <button data-dts-info="guide">💡 가이드·출처<small>공식·검증</small></button>
+        </div>
+        <div class="dts-note"><b>공시</b> = 우정사업본부 국제우편 요금표·과기부 고시(EMS 비서류 2026-07-01 · EMS 프리미엄 2026-04-01 · 소포 추가운송수수료는 우체국 계산기 실측) · <b>조건부</b> = 확인 필요 조건 · <b>견적 필요</b> = 순위 제외. 총액 = 운임 + 방문접수 수수료, <b>관세·DDP 신고 수수료는 별도</b>(아래 통관 줄 · 상세 창). ≈$ = ₩${FX.toLocaleString('en-US')}/$ (${FX_AT}). Delivery ${VER} · 조사 ${KR_CHECKED}</div>` : `<div class="dts-info">
+          <button class="gold" data-dts-info="samples">💰 최적 박스<small>무게별 순위 · 높이 한도</small></button>
+          <button class="gold" data-dts-info="methods">📐 요금 방식<small>표준 vs 독립 · 단가표</small></button>
+          <button data-dts-info="places">📍 접수처<small>Bayside 근처</small></button>
+          <button data-dts-info="boxes">📦 박스 구입<small>가격·크기</small></button>
+          <button data-dts-info="customs">🛃 통관·금지품목<small>한국 수입 기준</small></button>
+          <button data-dts-info="guide">💡 가이드·출처<small>공식·사례·검증</small></button>
+        </div>
+        <div class="dts-note"><b>공시</b> = 공개 요금표(USPS Notice 123 2026-10-04 시행 · 소포야 공개표 · Pirate Ship 공개 계산기) · <b>내 견적</b> = 이 박스·무게로 ${QUOTE_DAYS}일 이내 받은 견적 · <b>조건부</b> = 게시 운임 + 확인 필요 조건 · <b>견적 필요</b> = 순위 제외. 총액은 알려진 추가비만 포함(관부가세 별도). 배송 기간은 업체 안내 기준이며 통관·국내 배송에 따라 달라집니다. Delivery ${VER} · 조사 ${CHECKED}</div>`}
+      </div></div>`);
+    const mid2 = root.querySelector('.dts-mid'); if (mid2 && keepTop) mid2.scrollTop = keepTop;
+  }
+
+  // ------------------------------------------------------------------ popups (fixed size/position; header fixed, body scrolls)
+  let pop;
+  function closePop() { if (pop) { pop.forEach(n => n.remove()); pop = null; } }
+  function openPop(title, html, onMount, headBtns) {
+    closePop();
+    const ov = document.createElement('div'); ov.className = 'dts-ov';
+    const p = document.createElement('div'); p.className = 'dts-pop';
+    p.innerHTML = `<div class="dts-ph"><h4>${title}</h4>${headBtns || ''}<button data-dts-close>닫기 ✕</button></div><div class="dts-pb">${annotate(html)}</div>`;
+    ov.addEventListener('click', closePop);
+    p.addEventListener('click', e => { if (e.target.closest('[data-dts-close]')) { closePop(); return; } const c = e.target.closest('[data-dts-c]'); if (c) { e.stopImmediatePropagation(); commPop(c.getAttribute('data-dts-c')); } }, true);
+    document.body.append(ov, p); pop = [ov, p];
+    if (onMount) onMount(p);
+  }
+  const placeHtml = keys => keys.map(k => (isKR() ? KP : P)[k]).filter(Boolean).map(x => `<div class="dts-pl"><b>${esc(x[0])}</b><span>${esc(x[1])}</span><small>${esc(x[2])}</small>${x[3] !== 'usps' && x[3] !== 'post' ? `<small class="call">☎ ${isKR() ? '접수 전 업체에 조건 확인' : CALL}</small>` : ''}</div>`).join('');
+  const reqText = r => isKR() ? `한국 → 미국 뉴욕 Bayside NY 11360 · 박스 ${Math.round(st.L * CM)}×${Math.round(st.W * CM)}×${Math.round(st.H * CM)} cm · 실무게 ${kgs(st.lb * KG)} kg · 품목 ${kinds().find(k => k[0] === st.kind)[1].slice(2).trim()} · 물품가액 $${st.val === 500 ? '400+' : st.val}${giftOK() ? ' (개인 선물)' : ''}`
+      + (r && r.o.div ? ` · 부피무게(cm³÷${r.o.div}) ${kgs(r.dimLb * KG)} kg → 청구 ${kgF(r.billKg)} kg 예상` : '') + (st.pickup ? ' · 방문 픽업 필요' : '') + ' · 관세 포함(DDP) 가격인지 함께 알려주세요'
+    : `뉴욕 Bayside(11360) → 한국 · 박스 ${dimStr()} (${Math.round(st.L * CM)}×${Math.round(st.W * CM)}×${Math.round(st.H * CM)} cm) · 실무게 ${lbs(st.lb)} lb (${kgs(st.lb * KG)} kg) · 품목 ${kinds().find(k => k[0] === st.kind)[1].slice(2).trim()} · 물품가액 $${st.val === 500 ? '400+' : st.val}`
+    + (r && r.o.div ? ` · 부피무게(÷${r.o.div}) ${r1(r.dimLb)} lb → 청구 ${r.bill} lb 예상` : '') + (st.pickup ? ' · 픽업 필요' : '') + (st.pack ? ' · 포장 필요' : '');
+
+  function totalBlock(r) {
+    if (r.total == null) return '';
+    const lines = [[r.src === 'quote' ? '견적 운임' : '운임', r.base]].concat(r.adds);
+    return `<table class="dts-tb">${lines.map(l => `<tr><td>${esc(l[0])}</td><td style="text-align:right">${$m(l[1])}</td></tr>`).join('')}
+      <tr><th>합계 (알려진 항목)</th><th style="text-align:right">${$m(r.total)}</th></tr></table>
+      ${r.unknown.length ? `<div class="dts-sub" style="margin-top:4px">+ 확인 필요: ${r.unknown.map(esc).join(' · ')}</div>` : ''}
+      <div class="dts-sub">${isKR() ? `관세 자체는 총액에 넣지 않음 — ${esc(kDutyLine())}` : '관부가세는 수취인 부담(목록통관 한도 초과 시) — 아래 통관 참고'}</div>`;
+  }
+
+  function detail(id) {
+    const r = findRow(id); if (!r) return;
+    const o = r.o;
+    const kr = isKR(), kgm = r.billKg != null;
+    const dimTxt = o.div && o.cm ? (r.dimLb > 0 ? `(${Math.round(st.L * CM)}×${Math.round(st.W * CM)}×${Math.round(st.H * CM)} cm) ÷ ${o.div.toLocaleString('en-US')} = ${kgs(r.dimLb * KG)} kg${o.divNote ? ' · ' + o.divNote : ''}` : '해당 없음 — 서류(2 kg 이하)는 부피무게 없음')
+      : o.div ? `(${nIn(st.L)}×${nIn(st.W)}×${nIn(st.H)} in) ÷ ${o.div} = ${r1(r.dimLb)} lb (${r1(r.dimLb * KG)} kg)${o.divNote ? ' · ' + o.divNote : ''}`
+      : o.flat ? '해당 없음 — 박스·봉투 크기 안에서 정액' : o.divNote ? o.divNote : '해당 없음 — 실무게로만 과금';
+    const priceBlock = r.total != null ? `<b style="font-size:20px">${$m(r.total)}</b> ${badge(r)}` : `${badge(r)} <span style="color:#8fb3cc">${r.need ? esc(r.need) : '공개 요금표가 없습니다 — "견적 입력"으로 받은 금액을 저장하세요'}</span>`;
+    const cm = commFor(o.id);
+    openPop(esc(o.name) + cMark(o.id), `
+      <h5>이 박스 기준</h5>
+      <dl class="dts-kv">
+        <dt>요금</dt><dd>${priceBlock}</dd>
+        ${r.note ? `<dt>계산</dt><dd>${esc(r.note)}</dd>` : ''}
+        <dt>실무게</dt><dd>${kgm ? `${kgs(st.lb * KG)} kg (${lbs(st.lb)} lb)` : `${lbs(st.lb)} lb (${kgs(st.lb * KG)} kg)`}</dd>
+        <dt>부피무게</dt><dd>${esc(dimTxt)}</dd>
+        <dt>청구 기준</dt><dd>${kgm && !o.flat ? `${kgF(r.billKg)} kg (${r.basis}무게 · 구간 올림) · 실무게 비중 ${Math.round(Math.min(1, st.lb * KG / r.billKg) * 100)}%` : o.div ? `${r.bill} lb (${r.basis}무게) · 실무게 비중 ${Math.round(Math.min(1, st.lb / r.bill) * 100)}%` : r.basis === '실' ? '실무게' : r.basis}${r.pAct ? ` — 실무게였다면 운임 ${$m(r.pAct)}` : ''}</dd>
+        <dt>배송 기간</dt><dd>${esc(o.dayNote || dayTxt(o))} (업체 안내 · 통관·국내배송에 따라 변동)</dd>
+        ${r.total != null && kr && st.lb * KG >= 1 ? `<dt>kg당 단가</dt><dd><!--nocv-->실무게 1 kg당 ₩${Math.round(r.total / (st.lb * KG)).toLocaleString('en-US')} · ≈$${Math.round(r.total / FX)} (₩${FX.toLocaleString('en-US')}/$)${r.alt ? ' · ' + esc(r.alt) : ''}<!--/nocv--></dd>` : ''}
+        ${r.total != null && !kr && st.lb >= 1 ? `<dt>lb당 단가</dt><dd>실무게 1 lb당 $${(r.total / st.lb).toFixed(2)}${o.div && r.bill > st.lb ? ` · 청구 1 lb당 $${(r.base / r.bill).toFixed(2)}` : ''}</dd>` : ''}
+      </dl>
+      <h5>요금 방식</h5>${methodBlock(o)}
+      ${r.total != null ? `<h5>총액 내역</h5>${totalBlock(r)}` : ''}
+      ${o.tier === 'quote' ? `<h5>견적 요청 문구</h5><div class="dts-req"><!--nocv-->${esc(reqText(r))}<!--/nocv--></div>` : ''}
+      ${cm.length ? `<h5>커뮤니티 언급 <a class="dts-c">C</a></h5>${cm.map(commItem).join('')}<div class="dts-sub">개인 경험·작성 시점이 달라 요금 계산·순위에는 쓰지 않습니다.</div>` : ''}
+      <h5>장점</h5><ul>${o.pros.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h5>단점·주의</h5><ul>${o.cons.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h5>보내는 방법</h5><ul>${o.how.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      ${o.places.length ? `<h5>${kr ? '접수 (한국)' : '접수처 (Bayside 기준)'}</h5>${placeHtml(o.places)}` : ''}
+      ${kr ? `<h5>통관 — 한국 → 미국 (미국 세관 CBP 수입 기준)</h5><div style="font-size:15px">${esc(kCustoms(o))}</div>`
+        : `<h5>통관 — 미국 → 한국 (한국 관세청 수입 기준)</h5><div style="font-size:15px">${esc(customs(o.ch))}<br>${esc(PCCC)}</div>`}
+      <div class="dts-src">출처: ${esc(o.src)}</div>`,
+      p => p.addEventListener('click', e => { const b = e.target.closest('[data-dts-goquote]'); if (b) quote(b.getAttribute('data-dts-goquote')); }),
+      o.tier === 'quote' ? `<button data-dts-goquote="${o.id}">견적 입력</button>` : '');
+  }
+
+  function quote(id) {
+    const r = findRow(id); if (!r) return;
+    const qs = quoteState(id);
+    let s = qs.valid ? String(qs.valid.p) : '';
+    const cs = isKR() ? '₩' : '$', maxLen = isKR() ? 8 : 7;
+    const inc = Object.assign({ pickup: false, pack: false, fee: false }, qs.valid ? qs.valid.inc : {});
+    const hist = () => (quotes[id] || []).slice().sort((a, b) => (b.at > a.at ? 1 : -1)).map((q, i) => {
+      const state = q.sig === sig() ? (ageDays(q.at) <= QUOTE_DAYS ? '<i class="q">적용 중</i>' : '<i class="n">만료</i>') : '<i class="n">다른 박스</i>';
+      return `<tr><td>${q.at}</td><td>${esc(q.box || '')}</td><td style="text-align:right">${$m(q.p)}</td><td>${esc(q.incTxt || '')}</td><td>${state}</td><td><button class="dts-x" data-dts-qdel="${q.at}|${q.sig}|${q.p}">✕</button></td></tr>`;
+    }).join('');
+    const incHtml = () => [['pickup', '픽업 포함'], ['pack', '포장·박스 포함'], ['fee', '통관수수료 포함']].map(([k, n]) => `<span class="dts-chip ${inc[k] ? 'on' : ''}" data-dts-inc="${k}">${n}</span>`).join('');
+    openPop(`견적 입력 — ${esc(r.o.name)}`, `
+      <div class="dts-req"><!--nocv-->${esc(reqText(r))}<!--/nocv--></div>
+      <div class="dts-sub" style="margin:6px 0 2px">이 박스·무게로 받은 금액(${isKR() ? '원 · KRW' : 'USD'}). ${QUOTE_DAYS}일 동안 순위에 반영되고, 같은 박스에서 무게만 ±0.5 lb 다르면 "유사 조건 참고"로만 표시됩니다.</div>
+      <div class="dts-kpv" data-dts-kpv>${cs}${s || '0'}</div>
+      <div class="dts-kp">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map(k => `<button data-k="${k}">${k}</button>`).join('')}</div>
+      <div class="dts-seg" style="justify-content:center;margin-top:12px" data-dts-incs>${incHtml()}</div>
+      <h5>견적 기록</h5><table class="dts-tb" data-dts-hist><tr><th>날짜</th><th>박스</th><th>금액</th><th>포함</th><th>상태</th><th></th></tr>${hist() || '<tr><td colspan="6" style="color:#6e879b">아직 저장한 견적이 없습니다 (최근 10개까지 보관)</td></tr>'}</table>`, p => {
+      const out = p.querySelector('[data-dts-kpv]');
+      p.addEventListener('click', e => {
+        const b = e.target.closest('button, [data-dts-inc]'); if (!b) return;
+        if (b.hasAttribute('data-dts-inc')) { const k = b.getAttribute('data-dts-inc'); inc[k] = !inc[k]; p.querySelector('[data-dts-incs]').innerHTML = incHtml(); return; }
+        if (b.hasAttribute('data-dts-qdetail')) { detail(id); return; }
+        if (b.hasAttribute('data-dts-qdel')) {
+          const [at, sg, pr] = b.getAttribute('data-dts-qdel').split('|');
+          quotes[id] = (quotes[id] || []).filter(q => !(q.at === at && q.sig === sg && String(q.p) === pr)); saveQuotes(); quote(id); render(); return;
+        }
+        if (b.hasAttribute('data-dts-qsave')) {
+          const v = parseFloat(s);
+          if (v > 0) {
+            const incTxt = [inc.pickup && '픽업', inc.pack && '포장', inc.fee && '통관수수료'].filter(Boolean).join('·') + (inc.pickup || inc.pack || inc.fee ? ' 포함' : '');
+            const list = (quotes[id] || []).filter(q => !(q.sig === sig() && q.at === today()));
+            list.push({ sig: sig(), L: st.L, W: st.W, H: st.H, lb: st.lb, p: Math.round(v * 100) / 100, at: today(), box: isKR() ? `${Math.round(st.L * CM)}×${Math.round(st.W * CM)}×${Math.round(st.H * CM)} cm ${kgs(st.lb * KG)} kg` : dimStr() + ' ' + lbs(st.lb) + ' lb', inc: Object.assign({}, inc), incTxt });
+            quotes[id] = list.slice(-10); saveQuotes(); st.sel = id;
+          }
+          closePop(); render(); return;
+        }
+        const k = b.getAttribute('data-k'); if (!k) return;
+        if (k === '⌫') s = s.slice(0, -1);
+        else { if (k === '.' && (s.includes('.') || isKR())) return; if (s.length < maxLen) s += k; }
+        out.textContent = cs + (s || '0');
+      });
+    }, `<button data-dts-qdetail>상세</button><button class="dts-pri" data-dts-qsave>저장</button>`);
+  }
+
+  function info(kind) {
+    if (isKR()) return kInfo(kind);
+    if (kind === 'samples') return samplesPop();
+    if (kind === 'methods') return methodsPop();
+    if (kind === 'places') {
+      openPop('📍 접수처 — Bayside 근처 (🇺🇸→🇰🇷 발송 접수)', `
+        <div class="dts-sub">☎ 한인 매장·제휴 드롭오프는 영업시간·접수 조건이 자주 바뀝니다 — ${CALL}.</div>
+        <h5>한인 택배 (한국행 직접 취급)</h5>${placeHtml(['sopoya', 'samsung', 'cj', 'hanjin', 'asiana', 'dk', 'lulu'])}
+        <h5>USPS (국제우편)</h5>${placeHtml(['uspsBT', 'uspsBS'])}
+        <h5>FedEx · UPS 드롭 전용 (온라인 라벨 출력 후)</h5>${placeHtml(['fedexDR', 'bbs', 'ups4461', 'ups6819', 'staples', 'upsFL'])}
+        <h5>원거리 (조건부)</h5>${placeHtml(['kt', 'dream'])}
+        <div class="dts-src">출처: USPS·UPS·FedEx 지점 검색, 한진 해외 취급점 목록, 소포야·삼성택배·룰루·KT Express·현대해운 사이트 (확인 ${CHECKED})</div>`);
+    } else if (kind === 'boxes') {
+      openPop('📦 박스 구입 — 크기·가격 (미국 매장)', `
+        <h5>무료</h5><ul>
+          <li><b>USPS Flat Rate 박스·봉투</b> — 우체국 무료 (Flat Rate로 보낼 때만). usps.com 무료 주문 가능.<br>
+            <table class="dts-tb"><tr><th></th><th>안쪽 (내용물)</th><th>바깥 (측정값)</th><th>한도</th><th>한국 요금</th></tr>
+            ${['small', 'medium', 'large'].map(k => { const b = FR_BOX[k]; return `<tr><td>${b.n}</td><td>${b.inner.map(nIn).join('×')}″${b.inner2 ? ' / ' + b.inner2.map(nIn).join('×') + '″' : ''}</td><td>${b.outer.map(nIn).join('×')}″</td><td>${b.max} lb</td><td>$${b.p.toFixed(2)}</td></tr>`; }).join('')}</table></li>
+          <li><b>재사용 박스</b> — 아마존·월마트 박스 OK (기존 라벨·바코드 완전히 제거)</li>
+          <li><b>KT Express 지점</b> 박스·완충 포장 무료 (지점 방문 시)</li></ul>
+        <h5>Home Depot (2026 가격)</h5>
+        <table class="dts-tb"><tr><th>크기</th><th>치수 (in)</th><th>가격</th><th>부피무게 ÷166 / ÷139</th></tr>
+          ${[['X-Small', 15, 12, 10, 1.28], ['Small', 16, 12, 12, 1.78], ['Medium', 18, 18, 16, 2.28]].map(b => `<tr><td>${b[0]}</td><td>${b[1]}×${b[2]}×${b[3]}</td><td>$${b[4].toFixed(2)}</td><td>${r1(b[1] * b[2] * b[3] / 166)} / ${r1(b[1] * b[2] * b[3] / 139)} lb</td></tr>`).join('')}</table>
+        <div class="dts-pl"><b>Home Depot College Point</b><span>124-04 31st Ave, Flushing 11354</span><small>월–토 6:00–22:00 · 일 7:00–20:00</small></div>
+        <div class="dts-pl"><b>Home Depot Flushing</b><span>131-35 Avery Ave, Flushing 11355</span><small>월–토 6:00–22:00 · 일 8:00–20:00</small></div>
+        <h5>기타</h5>
+        <div class="dts-pl"><b>U-Haul Moving & Storage of Flushing</b><span>36-30 College Point Blvd, Flushing 11354 · 718-359-1919</span><small>Small Moving Box $1.77 · 테이프·완충재</small></div>
+        ${placeHtml(['staples', 'ups4461'])}
+        <div class="dts-pl"><b>룰루익스프레스</b><span>14×12×8 $2 · 18×14×10 $3 · 18×18×16 $4</span><small>박스 구입 시 포장 무료</small></div>
+        <h5>박스 고르기</h5><ul>
+          <li>내용물보다 사방 1–2″만 크게 — 빈 공간이 곧 부피무게 요금</li>
+          <li>치수는 <b>포장 후 바깥쪽</b>으로 재고 소수점은 올림 (USPS 국내는 2026-07-12부터 올림)</li>
+          <li>윗부분이 남으면 모서리를 잘라 접어 높이를 낮추기 — 박스 그림 아래 ✂ 줄에 절약액 표시</li></ul>
+        <div class="dts-src">출처: USPS Flat Rate 박스 규격, HireAHelper 2026 박스 가격(Home Depot), U-Haul, Lulu Express 박스표, KT Express 견적 페이지 (확인 ${CHECKED})</div>`);
+    } else if (kind === 'customs') {
+      openPop(`🛃 통관 · 금지품목 — ${US_FLAG}<b>미국</b> → ${KR_FLAG}<b>한국</b>`, `
+        <div class="dts-dirbox"><b>이 화면의 통관 정보는 모두 '미국에서 한국으로 보낼 때' 한국 관세청이 적용하는 수입 기준</b>입니다. 한국 → 미국은 박스 그림 위 방향 버튼을 눌러 따로 보세요.</div>
+        <h5>품목·경로별 면세 기준</h5>
+        <table class="dts-tb"><tr><th>품목</th><th>USPS 우편</th><th>특송·한인택배</th></tr>
+          <tr><td>의류·신발·잡화 등 (목록통관 대상)</td><td>$150</td><td><b>$200</b> (미국발 목록통관)</td></tr>
+          <tr><td>식품·화장품·영양제·의약품 (목록통관 배제)</td><td>$150</td><td>$150 (수입신고)</td></tr>
+          <tr><td>서류</td><td colspan="2">물품이 아니면 보통 과세 없음 — Documents 표기</td></tr>
+          <tr><td>귀국 이사물품</td><td colspan="2">이사자 요건 충족 + 사용하던 물품 + 입국 후 6개월 이내 → 이사물품 신고로 면세 가능</td></tr></table>
+        <ul>
+          <li>물품가격 = 물건값 + 미국 내 세금·운임 (국제운임·보험료는 구분되면 제외)</li>
+          <li>한도를 넘으면 초과분이 아니라 <b>전체 과세가격</b>(물품+운임+보험)에 관세+부가세 10%</li>
+          <li>같은 판매자에게 같은 날 산 물건을 나눠 보내면 합산과세</li></ul>
+        <h5>귀국 이사물품</h5><ul>
+          <li>이사자: 본인 1년 이상(가족 동반 6개월 이상) 해외 거주 · 3개월~1년은 단기체류자</li>
+          <li>입국 후 6개월 이내 반입 · 이사물품 신고서 제출 (별송품은 이사업체·관세사 대행)</li>
+          <li>세부 요건은 관세청(UNI-PASS) 확인 — 여기 표시는 안내용</li></ul>
+        <h5>수취인 준비</h5><ul>
+          <li>수취인 영문 이름·주소, <b>휴대폰 번호</b> (Korea Post 요청 — 없으면 지연)</li>
+          <li><b>개인통관고유부호</b> (P + 숫자 12자리, unipass.customs.go.kr) — 2026년부터 유효기간제: 신규 1년, 기존 발급자는 2027년 본인 생일 만료</li></ul>
+        <h5>금지 · 제한</h5><ul>
+          <li>육포·소시지 등 육가공품, 유제품·계란 제품(검역증), 생과일·채소·씨앗·흙 붙은 식물</li>
+          <li>인삼·담배 (정부 전매) · 의약품(처방전) · 영양제 6병 초과</li>
+          <li>직접 만든 음식 — 대부분 업체 접수 불가</li>
+          <li>배터리 단독·보조배터리, 스프레이·인화성 물질은 항공 불가</li>
+          <li>현금·귀금속·보석 (USPS는 First-Class Mail Int'l + Registered Mail만)</li></ul>
+        <h5>세관 신고서</h5><ul><li>품목마다 영문 품명 + 수량 + 단가 (예: Baby clothes (used) ×3 $30) — "Gift"만 쓰면 지연</li></ul>
+        <div class="dts-src">출처: 관세청·정책브리핑 해외직구 면세 안내(물품가격 정의·영양제 6병), 토스뱅크 정리(우편 $150), USPS IMM Korea, KT Express 통관 안내, 귀국 이사자 요건 정리 (확인 ${CHECKED})</div>`);
+    } else {
+      openPop('💡 가이드 · 출처 · 검증', `
+        <h5>가격 표시 단계</h5>
+        <table class="dts-tb"><tr><th>단계</th><th>뜻</th><th>순위</th></tr>
+          <tr><td><i class="ok">공시</i></td><td>공개 요금표 그대로 (USPS Notice 123 · 소포야 1–60 lb)</td><td>반영</td></tr>
+          <tr><td><i class="q">내 견적</i></td><td>이 박스·무게로 ${QUOTE_DAYS}일 이내 받은 견적</td><td>반영</td></tr>
+          <tr><td><i class="c">조건부</i></td><td>게시 운임 + 미확인 조건 (KT Express·Shipping To Home 캘리포니아 선배송, 싸요택배 크기 기준)</td><td>제외</td></tr>
+          <tr><td><i class="n">견적 필요</i></td><td>공개 요금표 없음 (CJ·한진·DK·삼성·룰루·UPS·FedEx·DHL 등)</td><td>제외</td></tr>
+          <tr><td>시장 사례</td><td>이용자 진술·과거 견적 — 아래 표 (검증 불가)</td><td>제외</td></tr></table>
+        <h5>부피무게 공식</h5>
+        <table class="dts-tb"><tr><th>방법</th><th>공식</th><th>비고</th></tr>
+          <tr><td>한인 택배 (소포야·삼성)</td><td>in³ ÷ 166</td><td>= cm³ ÷ 6,000 · 1 lb 올림</td></tr>
+          <tr><td>UPS·FedEx·DHL (온라인/Daily)</td><td>in³ ÷ 139</td><td>= cm³ ÷ 5,000 · UPS Store 창구 Retail ÷166</td></tr>
+          <tr><td>USPS 국제 (FCPIS·PMI·PMEI)</td><td>없음</td><td>실무게 과금 — 2026-07-12 ÷139 변경은 미국 국내 서비스만</td></tr>
+          <tr><td>USPS 국내 (KT Express 선배송)</td><td>in³ ÷ 139</td><td>1 ft³(1,728 in³) 초과 시 · 치수 올림</td></tr></table>
+        <h5>상황별 추천</h5><ul>
+          <li><b>작고 무거운 것</b> (책·식품): 소포야 공시표 vs USPS Flat Rate Medium/Large</li>
+          <li><b>크고 가벼운 것</b> (패딩·이불): USPS Priority Mail Int'l — 부피무게 없음</li>
+          <li><b>4 lb 이하 소형</b>: 소포야 vs USPS First-Class Package (1–4주, 배송확인 무료)</li>
+          <li><b>서류</b>: 📄 선택 → USPS First-Class Mail ($3.30부터)</li>
+          <li><b>급함</b>: UPS·FedEx 온라인 견적 — 박스를 최대한 작게</li>
+          <li><b>35 kg 가까운 귀국 짐</b>: 드림백(해상) 개인 박스 $233 + 통관 $27 · 한진·CJ 화물 견적과 비교</li></ul>
+        <h5>커뮤니티 언급 <a class="dts-c" data-dts-c="all">C 전체 보기</a></h5><div class="dts-sub">마일모아·WorkingUS 등 ${COMM.length}건 — 개인 경험·시점이 달라 순위에는 쓰지 않음</div>
+        <h5>검토 의견 반영 · 사실 확인 결과</h5><ul>
+          <li>KT Express $6.99 + lb당 $2 — 게시 확인. 뉴욕 지점이 없어 LA 선배송(USPS Ground Advantage Zone 8)을 더한 <b>조건부</b>로 표시</li>
+          <li>현대해운 드림백 — dreambag.kr 주별 운송비에서 <b>NY·NJ $253</b> 확인 (이전 $193은 옛 값) · 개인 가방·박스 $20 할인 · 통관 $27/추가 $13 → <b>공시</b>로 순위 반영</li>
+          <li>Easyship 0.5 lb ePost Global — 오늘 페이지는 $7.43/$7.50 ($13.33 아님 · Flat Export가 $13.66)</li>
+          <li>Gorudot 공개표 — 해외직구 배송대행(쇼핑 물품) 요금이라 베이사이드에서 개인 짐을 보내는 용도가 아님 → 제외</li>
+          <li>QuickQuick — 한국행 서비스를 확인하지 못해 제외</li>
+          <li>PMEI 한국 한도는 66 lb (20 lb는 요금표 수록 범위일 뿐) · 소포야 온라인 한도는 60 lb (160 lb 아님)</li>
+          <li>USPS FCPIS 최소 크기(주소면 6×4″) 반영 · 한국은 E-USPS DELCON INTL 대상(배송 완료 확인 무료)</li>
+          <li>한국행 Flat Rate는 그룹 3 ($51.40/$96.40/$121.30) — $33.75·$61.80·$75.15는 캐나다 요금</li>
+          <li>DK Express 현재 주소 35-28 154th St · Bayside 우체국 토요일 시간은 자료마다 달라 생략</li>
+          <li><b>2차 검토(8건) 사실확인</b> — "USPS PMI도 1 ft³ 초과 시 ÷139 부피무게" 주장: <b>틀림</b>. 2026-07-12 ÷139 변경은 국내 Priority Mail·Ground Advantage 등에만 해당, Notice 123 국제 요금표에는 부피무게 규정 없음</li>
+          <li>소포야 한도는 "한 변 150 cm"가 아니라 세 변 합 150 cm · 한 변 1 m · 25 kg (다른 자료의 계산기 오류)</li>
+          <li>드림백 NY $193+$27=$220은 2026-08 무렵 값 → 현재 $253 (전용 가방·드림박스 $280, 개인 가방·박스 $260) 확인. 제주 +$30·가방 3 kg 포함은 공식 페이지에서 확인 못 함</li>
+          <li>Pirate Ship SER 규격(≤4 lb: 22″·36″·$400 / >4 lb: 31″·둘레 54″·2 ft³ 미만·$2,500)·기본 보험 없음 확인. 요금 $14.99–$104.99 주장은 이미지 표라 확인 불가 → 견적 입력 방식 유지</li>
+          <li>보스턴 블로그 "총 $23.65"는 합산 오류 (구성요소 합 $39.65)</li>
+          <li>Easyship 0.5 lb ePost Global $13.33 주장 → 이번 조사 시점 페이지는 $7.43 (요금은 수시 변동)</li>
+          <li><b>3차 검토 (Pirate Ship)</b> — Pirate Ship 공개 계산기(11360 → South Korea)로 0.5–70 lb 직접 실측 · USPS 공식표와 대조해 PMI 창구가 1–44 lb, 상업가 1–20 lb, PMEI 0.5–20 lb 전부 일치 확인</li>
+          <li>SER 요금 0.5–20 lb ($14.99 … $104.99) — 다른 자료의 표와 일치. 2024 표에 "+$1" 적용한 추정은 틀림 (4 lb $33.99로 오히려 낮음)</li>
+          <li>SER "초대제/활성화 요청 필요" — 현재 공개 계산기에 바로 표시, 무료 가입만 필요 · carrier liability 없음 (UPS $100 · USPS PMI/PMEI $200)</li>
+          <li>PMI 상업가 "최대 9% 할인" — 실측은 무게별 약 3–6% · PMI 부피무게 없음을 실측으로 재확인 (16×12×12″ 1 lb → 1 lb 요금)</li>
+          <li>UPS(Pirate Ship) 부피무게 ÷139는 840 in³에서는 미적용, 864 in³부터 적용 (실측) · 소수점 무게는 1 lb 올림 (1 lb 4 oz → 2 lb)</li>
+          <li>Shippo — 계정 견적만 가능하고 공개 요금표 없음 → 미반영</li></ul>
+        <h5>출처</h5><ul class="dts-srcs">
+          <li>USPS Notice 123 (2026-10-04 시행: PMI·PMEI·FCPIS·FCMI·Flat Rate·Ground Advantage) · IMM Korea · IMM 251/252</li>
+          <li>sopoya.com/prices · samsungpost.com/to-kor · ktxpress.com · lulu-newyork.com · cyhds.com 드림백</li>
+          <li>한진 해외 취급점 목록 · FedEx Local · UPS Locator · The UPS Store</li>
+          <li>Pirate Ship Simple Export Rate · Easyship US→South Korea 계산기 · USPS 2026-07-12 국내 부피무게 변경</li>
+          <li>관세청·정책브리핑 해외직구 면세 · HireAHelper 2026 박스 가격</li></ul>`);
+    }
+  }
+
+
+  const commItem = c => `<div class="dts-cm" id="dts-${c.id}"><a class="dts-c">C</a><div><b>${esc(c.t)}</b><small>${esc(c.src)} · ${esc(c.when)} · 관련: ${c.on.map(id => { const o = ALL_OPTS().find(x => x.id === id); return o ? esc(o.name.replace(/ \(.*\)$/, '')) : id; }).join(', ')}</small><small class="u">${esc(c.url)}</small></div></div>`;
+  function commPop(key) {
+    let focus = [];
+    if (key && key.startsWith('o:')) focus = commFor(key.slice(2));
+    else if (key && key.startsWith('k:')) focus = COMM.filter(c => c.kind === key.slice(2));
+    const rest = COMM.filter(c => !focus.includes(c));
+    const title = key && key.startsWith('o:') ? (ALL_OPTS().find(o => o.id === key.slice(2)) || {}).name : '';
+    openPop('<a class="dts-c">C</a> 커뮤니티 언급', `
+      <div class="dts-stdbox">미주 한인 커뮤니티(마일모아·WorkingUS 등)에서 어떤 방법이 유리하다고 말하는지 모은 것입니다. <b>개인 경험이고 작성 시점이 달라</b> 요금 계산·순위에는 쓰지 않으며, 원문은 출처 주소에서 확인하세요.</div>
+      ${focus.length ? `<h5>${title ? esc(title) + ' 관련' : '이 항목 관련'}</h5>${focus.map(commItem).join('')}` : ''}
+      <h5>${focus.length ? '다른 언급' : '전체'}</h5>${rest.map(commItem).join('')}
+      <h5>출처 확인 불가 주장 (다른 검토 자료 인용 · C 미부여 · 순위 미반영)</h5>
+      <table class="dts-tb"><tr><th>출처</th><th>내용</th></tr>${UNVERIFIED.map(u => `<tr><td>${esc(u[0])}</td><td>${esc(u[1])}</td></tr>`).join('')}</table>
+      <div class="dts-src">수집 ${CHECKED} · 마일모아 게시글은 페이지 표시 경과일로 연도를 추정 ("약")</div>`);
+  }
+
+  function methodBlock(o) {
+    const m = MDX()[o.id] || {};
+    return `<dl class="dts-kv">
+      <dt>방식</dt><dd>${m.std ? `<span class="dts-m">표준${m.est ? ' (추정 — 업체 확인)' : ''}</span> ${esc(stdTxt())}` : `<b class="dts-gold">독립 · ${esc(m.k || '')}</b><br>${esc(m.d || '')}`}</dd>
+      ${m.rate ? `<dt>요금 구조</dt><dd>${esc(m.rate)}</dd>` : ''}
+      ${m.lim ? `<dt>한도</dt><dd>${esc(m.lim)}</dd>` : ''}
+      ${m.best ? `<dt>최적 규격</dt><dd>${esc(m.best)}</dd>` : ''}</dl>`;
+  }
+
+  // ---- what-if evaluation (for samples) — does not touch the visible state
+  function evalAt(L, W, H, lb, kind, frBox) {
+    const keep = { L: st.L, W: st.W, H: st.H, lb: st.lb, kind: st.kind, frBox: st.frBox };
+    Object.assign(st, { L, W, H, lb, kind, frBox: frBox || null });
+    let r; try { r = compute(); } finally { Object.assign(st, keep); }
+    return r;
+  }
+  const COMMON = [[8, 6, 4], [9, 6, 4], [10, 8, 4], [10, 8, 6], [12, 10, 6], [12, 12, 6], [14, 10, 5], [12, 12, 8], [14, 12, 8], [15, 12, 10],
+    [16, 12, 12], [18, 14, 10], [18, 14, 12], [18, 18, 12], [18, 18, 16], [20, 20, 15], [20, 20, 18], [20, 20, 19]];
+  function maxBox(div, lb, sumMax) {
+    const V = div * lb;
+    const ok = COMMON.filter(b => b[0] * b[1] * b[2] <= V && (!sumMax || b[0] + b[1] + b[2] <= sumMax));
+    return { V, box: ok.sort((a, b) => b[0] * b[1] * b[2] - a[0] * a[1] * a[2])[0] };
+  }
+  function miniBox(L, W, H) {
+    const k = 0.5, dx = Math.cos(Math.PI / 6) * k, dy = Math.sin(Math.PI / 6) * k;
+    const s = Math.min(118 / (L + W * dx), 74 / (H + W * dy));
+    const fw = L * s, fh = Math.max(H * s, 4), ddx = W * s * dx, ddy = W * s * dy;
+    const x0 = (150 - fw - ddx) / 2, y0 = 8 + ddy + (78 - fh - ddy) / 2, x1 = x0 + fw, y1 = y0 + fh;
+    const P = pts => pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
+    return `<svg viewBox="0 0 150 92" class="dts-mini"><polygon points="${P([[x0, y0], [x1, y0], [x1 + ddx, y0 - ddy], [x0 + ddx, y0 - ddy]])}" fill="#e0a63c" stroke="#e8c27a"/>
+      <polygon points="${P([[x0, y0], [x1, y0], [x1, y1], [x0, y1]])}" fill="#d9932b" stroke="#e8c27a"/>
+      <polygon points="${P([[x1, y0], [x1 + ddx, y0 - ddy], [x1 + ddx, y1 - ddy], [x1, y1]])}" fill="#a86c16" stroke="#e8c27a"/></svg>`;
+  }
+  const SAMPLES = [
+    ['📄 서류 봉투', 12, 9, 0.5, 0.25, 'docs', '서류는 USPS 우편 oz 요금이 압도적으로 쌈 (부피 없음)'],
+    ['🎁 5 lb 소형', 12, 10, 6, 5, 'goods', '720 in³ ≤ 5×166 → 부피 손해 0 · 소포야 5 lb 구간 끝 (6 lb부터 +$6)'],
+    ['📦 30 lb 중형', 18, 18, 15, 30, 'goods', '4,860 in³ ≤ 30×166 · 30 lb 구간 끝 (31 lb부터 +$5)'],
+    ['📦 45 lb 대형', 20, 20, 18, 45, 'goods', '7,200 in³ ≤ 45×166 · 세 변 합 58″(147 cm) · 46 lb부터 +$5'],
+    ['🏆 25 kg 최대 효율', 20, 20, 19, 55, 'goods', '표준 택배 한도(25 kg · 세 변 합 150 cm) 안에서 lb당 최저'],
+    ['📚 책 20 lb', 11, 8.5, 5.5, 20, 'books', 'USPS Medium Flat Rate 안쪽 치수 — 정액·M-bag·한인택배 비교'],
+    ['🧳 이민가방 35 kg', 35.4, 22.4, 11.8, 77, 'move', '드림백 가방(90×57×30 cm) 정액 — 해상, 수 주']
+  ];
+
+  function samplesPop() {
+    const u = unitNow() === 'in';
+    const dimTxt = (L, W, H) => u ? `${nIn(L)}×${nIn(W)}×${nIn(H)}″` : `${Math.round(L * CM)}×${Math.round(W * CM)}×${Math.round(H * CM)} cm`;
+    const wTxt = lb => u ? `${lbs(lb)} lb` : `${kgs(lb * KG)} kg`;
+    const a = maxBox(166, st.lb, 59), b = maxBox(139, st.lb, 0);
+    const cards = SAMPLES.map(([n, L, W, H, lb, kind, why]) => {
+      const r = evalAt(L, W, H, lb, kind), best = r.priced[0];
+      const line = best ? `<b class="p">${$m(best.total)}</b> ${esc(best.o.name)}<small>${lb >= 1 ? `lb당 $${(best.total / lb).toFixed(2)} · ` : ''}${best.src === 'pub' ? '공시' : '내 견적'}</small>` : '<small>확인된 요금 없음</small>';
+      const cl = r.cond.filter(c => !best || c.total < best.total).map(c => `<small class="c">조건부 ${$m(c.total)} ${esc(c.o.name)}${lb >= 1 ? ` · lb당 $${(c.total / lb).toFixed(2)}` : ''}${c.unknown.length ? ` · 미포함 ${c.unknown.length}건: ${esc(c.unknown[0])}` : ''}</small>`).join('');
+      return `<div class="dts-smp">${miniBox(L, W, H)}<div><b>${n}</b><span>${dimTxt(L, W, H)} · ${wTxt(lb)}</span><small>${esc(why)}</small><div class="r">${line}${cl}</div></div>
+        <button class="dts-more" data-dts-sample="${[L, W, H, lb, kind].join(',')}">적용</button></div>`;
+    }).join('');
+    // ---- optimal box finder for the current weight & item type
+    const cands = COMMON.map(b => [b[0], b[1], b[2], null, `${b[0]}×${b[1]}×${b[2]}″`])
+      .concat([[11.25, 8.75, 6, 'medium', 'USPS Medium FR 박스'], [12.25, 12.25, 6, 'large', 'USPS Large FR 박스'], [8.6875, 5.4375, 1.75, 'small', 'USPS Small FR 박스'],
+        [12, 9, 0.5, null, '서류 봉투 12×9×½″'], [21.6, 16.6, 13.2, null, 'FedEx 25kg Box급 21.6×16.6×13.2″'], [35.4, 22.4, 11.8, null, '이민가방 90×57×30 cm']]);
+    const ranked = [];
+    for (const [L, W, H, fr, label] of cands) {
+      const r = evalAt(L, W, H, st.lb, st.kind, fr), b = r.priced.find(x => !x.warn);
+      if (b) ranked.push({ L, W, H, fr, label, b, vol: L * W * H });
+    }
+    ranked.sort((x, y) => x.b.total - y.b.total || y.vol - x.vol);
+    const seen = new Set(), top = [];
+    for (const x of ranked) { const k = x.b.o.id + '|' + x.b.total.toFixed(2); if (seen.has(k)) continue; seen.add(k); top.push(x); if (top.length >= 6) break; }
+    const tb = Math.max(1, Math.ceil(st.lb - 1e-9)), area = st.L * st.W;
+    const h166raw = 166 * tb / area, h166 = Math.min(h166raw, 59 - st.L - st.W, 39.3), h139 = 139 * tb / area, capped = h166 < h166raw - 0.01;
+    const finder = `
+      <h5>무게 ${wTxt(st.lb)}${st.kind !== 'goods' ? ' · ' + esc(kinds().find(k => k[0] === st.kind)[1].slice(2).trim()) : ''} — 금액 구간별 <b>담을 수 있는 가장 큰 박스</b> <small style="color:#7f9bb1;font-weight:500">(확인된 요금 최저 · 내용물이 들어가는 첫 줄이 최적)</small></h5>
+      <table class="dts-tb dts-fd"><tr><th>이 금액의 최대 박스</th><th>최저 방법</th><th style="text-align:right">총액</th><th></th></tr>
+        ${top.map((x, i) => `<tr class="${i === 0 ? 'best' : ''}"><td><b>${esc(x.label)}</b><small>${Math.round(x.vol).toLocaleString()} in³</small></td><td>${esc(x.b.o.name)}${cMark(x.b.o.id)}<small>${mTag(x.b.o)}${x.b.o.div ? `청구 ${x.b.bill} lb` : ''}</small></td><td style="text-align:right"><b>${$m(x.b.total)}</b>${i === 0 ? ' ⭐' : ''}</td><td><button class="dts-more" data-dts-sample="${[x.L, x.W, x.H, st.lb, st.kind, x.fr || ''].join(',')}">적용</button></td></tr>`).join('') || '<tr><td colspan="4">이 무게로 확인된 요금이 있는 박스가 없습니다</td></tr>'}</table>
+      <div class="dts-sub">후보: 일반 박스 ${COMMON.length}종 + USPS Flat Rate 박스 3종 + 서류 봉투 + 대형 2종. 위에서부터 보고 <b>내용물이 들어가는 첫 박스</b>를 고르면 그 무게의 최저 총액입니다.</div>
+      <h5>지금 가로 ${nIn(st.L)}″ × 세로 ${nIn(st.W)}″에서 청구 ${tb} lb(실무게 구간) 유지 최대 높이</h5>
+      <div class="dts-smp now"><div>
+        <span><em class="dts-m">표준</em> ÷166 (소포야·삼성) → 높이 <b>${h166 >= 0.25 ? nIn(Math.floor(h166 * 4) / 4) + '″' : '불가'}</b>${capped ? ' (소포야 규격: 세 변 합 150 cm · 한 변 1 m 한도)' : ''}${tb <= 60 ? ` · 운임 ${$m(SOPOYA[tb - 1])}${tb < 60 ? ` (1 lb 넘으면 ${$m(SOPOYA[tb])})` : ''}` : ''}</span>
+        <span><em class="dts-m ind">부피 ÷139</em> UPS·FedEx·DHL → 높이 <b>${h139 >= 0.25 ? nIn(Math.floor(h139 * 4) / 4) + '″' : '불가'}</b></span>
+        <small>치수 올림·측정 오차를 감안해 실제 박스는 조금 더 낮게. USPS 국제(PMI·PMEI·FCPIS)는 부피무게가 없어 높이 제한 없음(규격 한도 안).</small></div></div>`;
+    const stdList = OPTS.filter(o => MD[o.id] && MD[o.id].best).map(o => `<li>${mTag(o)} <b>${esc(o.name)}</b> — ${esc(MD[o.id].best)}</li>`).join('');
+    openPop('💰 최적 박스 — 무게별 순위 · 샘플', `
+      ${finder}
+      <h5>지금 무게 ${wTxt(st.lb)}에서 부피 손해 없는 최대 박스</h5>
+      <div class="dts-smp now"><div>
+        <span><em class="dts-m">표준</em> 한인택배 ÷166 → <b>${Math.round(a.V).toLocaleString()} in³</b>까지 실무게 과금${a.box ? ` · 예: <b>${dimTxt(...a.box)}</b> (${(a.box[0] * a.box[1] * a.box[2]).toLocaleString()} in³)` : ' · 일반 박스로는 불가 (봉투·초소형)'}</span>
+        <span><em class="dts-m ind">부피 ÷139</em> UPS·FedEx·DHL → <b>${Math.round(b.V).toLocaleString()} in³</b>까지${b.box ? ` · 예: <b>${dimTxt(...b.box)}</b>` : ''}</span>
+        <small>USPS 국제(PMI·PMEI·FCPIS)는 부피무게가 없어 크기 한도 안이면 박스 크기와 무관</small></div>
+        ${a.box ? `<button class="dts-more" data-dts-sample="${a.box.concat([st.lb, st.kind]).join(',')}">적용</button>` : ''}</div>
+      <h5>규격 샘플 — 실시간 계산 (확인된 요금 최저)</h5>
+      <div class="dts-smps">${cards}</div>
+      <h5>방식별 최적 규격</h5><ul class="dts-best-list">${stdList}</ul>
+      <div class="dts-src">계산 기준: 공시 요금표(소포야 1–60 lb · USPS Notice 123 2026-10-04) + 저장된 내 견적. 조건부(드림백·KT)는 순위와 분리해 표시. 확인 ${CHECKED}</div>`,
+      p => p.addEventListener('click', e => { const b = e.target.closest('[data-dts-sample]'); if (b) applySample(b.getAttribute('data-dts-sample')); }));
+  }
+  function applySample(v) {
+    const [L, W, H, lb, kind, fr] = v.split(',');
+    Object.assign(st, { L: +L, W: +W, H: +H, lb: +lb, kind, frBox: null, sel: null });
+    if (fr && FR_BOX[fr]) { const o = FR_BOX[fr].outer; Object.assign(st, { L: o[0], W: o[1], H: o[2], frBox: fr, sel: 'fr' }); }
+    save(); closePop(); render(); if (st.mounted) st.mounted.send.scrollTop = 0;
+  }
+
+  function methodsPop() {
+    const rows = OPTS.map(o => { const m = MD[o.id] || {};
+      return `<tr><td><b>${esc(o.name)}</b></td><td>${m.std ? `<span class="dts-m">표준${m.est ? '·추정' : ''}</span>` : `<b class="dts-gold">${esc(m.k)}</b>`}</td><td>${esc(m.rate || '')}</td><td>${esc(m.lim || '')}</td></tr>`; }).join('');
+    const WTS = [1, 5, 10, 20, 30, 44, 55, 66, 77];
+    const T = [
+      ['소포야 (표준 ÷166)', w => w <= 60 ? SOPOYA[w - 1] : null, '부피 ≤ 실무게일 때'],
+      ['KT Express 운임만', w => 6.99 + 2 * (w - 1), '조건부 · 선배송비 별도', 1],
+      ['USPS First-Class Pkg', w => w <= 4 ? USPS.fcpis.find(x => w * 16 <= x[0])[2] : null, '온라인가'],
+      ['Pirate Ship SER', w => w <= 20 ? PS.ser.find(x => x[0] >= w)[1] : null, '20 lb까지 · 보험 없음 · 1–3주+'],
+      ['UPS Expedited (Pirate)', w => w <= 70 ? PS.upsE[w - 1] : null, '부피 ÷139 (864 in³↑) 미적용 시'],
+      ['USPS Priority Mail Int\'l', w => w <= 44 ? PS.pmiC[w - 1] : null, '온라인 상업가'],
+      ['USPS Express Int\'l', w => w <= 66 ? PS.pmeiC[w] : null, '온라인 상업가'],
+      ['USPS Flat Rate Medium', w => w <= 20 ? USPS.fr.medium : null, '박스에 들어갈 때'],
+      ['USPS M-bag (책)', w => w <= 66 ? 133.43 + 12.13 * Math.max(0, w - 11) : null, '인쇄물만'],
+      ['드림백 (해상 · 개인 박스)', w => w <= 77 ? 260 : null, 'NY $233 + 통관 $27'],
+      ['Shipping To Home 운임만', w => { const k = Math.max(1, Math.ceil(w * KG - 1e-9)); return k < 30 ? 8 + 3 * (k - 1) : null; }, '조건부 · LA 선배송비 별도', 1],
+      ['싸요택배', w => w <= 3 ? 8 : null, '조건부 · 3 lb까지만 공시', 1]
+    ];
+    const cols = WTS.map(w => { const v = T.filter(t => !t[3]).map(t => t[1](w)).filter(x => x != null); return v.length ? Math.min(...v) : null; });
+    const ut = T.map(t => `<tr class="${t[3] ? 'cond' : ''}"><td><b>${esc(t[0])}</b><small>${esc(t[2])}</small></td>${WTS.map((w, i) => { const v = t[1](w); return v == null ? '<td class="na">—</td>' : `<td class="${!t[3] && v === cols[i] ? 'best' : ''}">${$m(v)}<small>$${(v / w).toFixed(2)}/lb</small></td>`; }).join('')}</tr>`).join('');
+    openPop('📐 요금 방식 — 표준 vs 독립', `
+      <div class="dts-stdbox"><span class="dts-m">표준</span> ${esc(STD_TXT)}<br><small>뉴욕 한인택배 대부분(소포야·삼성 공시, CJ·한진·DK 통상)이 이 방식. 다른 방식은 <b class="dts-gold">금색 볼드</b>로 다른 점만 표시합니다.</small></div>
+      <h5>업체별 요금 방식</h5>
+      <table class="dts-tb"><tr><th>업체</th><th>방식</th><th>요금 구조</th><th>한도</th></tr>${rows}</table>
+      <h5>무게당 단가 (같은 무게 비교 · 초록 = 확인된 공시 요금 중 최저 · 보라 = 조건부, 순위 제외)</h5>
+      <div class="dts-scroll"><table class="dts-tb dts-ut"><tr><th>방법</th>${WTS.map(w => `<th>${w} lb<small>${r1(w * KG)} kg</small></th>`).join('')}</tr>${ut}</table></div>
+      <div class="dts-sub">소포야는 박스 부피가 실무게 × 166 in³ 이하일 때 값 — 박스가 크면 부피무게로 올라갑니다. 55 lb(25 kg) 초과는 화물 추가비, 61 lb 이상은 문의.</div>
+      <h5>특정 규격 할인 프로그램</h5><ul>
+        <li><b class="dts-gold">USPS PMI Flat Rate</b> — 봉투 $49.75 · Small $51.40 (4 lb) · Medium $96.40 · Large $121.30 (20 lb). 무게 무관, 박스 무료.</li>
+        <li><b class="dts-gold">USPS PMEI Flat Rate Envelope</b> — $79.80 (4 lb), 특급 서류·소형.</li>
+        <li><b class="dts-gold">USPS First-Class Mail Int'l</b> — 서류 Large Envelope 1 oz $3.30, 16 oz $18.55.</li>
+        <li><b class="dts-gold">USPS Airmail M-bag</b> — 책·인쇄물 자루, 11 lb까지 $133.43 + lb당 $12.13 (한국 66 lb).</li>
+        <li><b class="dts-gold">FedEx 10kg / 25kg Box</b> — International Priority 박스당 정액 (22 lb / 55 lb, 안쪽 15.81×12.94×10.19″ / 21.56×16.56×13.19″). 미국 출발 요금은 견적.</li>
+        <li><b class="dts-gold">현대해운 드림백</b>${cMark('dream')} — 35 kg 정액(해상). NY·NJ $253 · 개인 가방·박스 $233 · 통관 $27(추가 개당 $13). 개인 가방 90×57×30 cm · 개인 박스 세 변 합 160 cm · 드림박스 80×50×40 cm.</li>
+        <li><b class="dts-gold">싸요택배</b> — 3 lb까지 $8 (NJ Hackensack). <b class="dts-gold">Shipping To Home</b> — LA 출발 1 kg $8 + kg당 $3. <b class="dts-gold">논스톱박스</b> — 항공 귀국이사 박스당(40 lb · 52″).</li>
+        <li><b class="dts-gold">Pirate Ship Simple Export Rate</b> — 무게 구간 정액 (0.5 lb $14.99 · 1 lb $18.99 · 4 lb $33.99 · 5 lb $56.99 · 20 lb $104.99), 부피무게 없음 · 크기 상한 · 보험 없음. 무료 가입만 하면 사용 (공개 계산기에 표시됨).</li>
+        <li><b class="dts-gold">Pirate Ship UPS 할인 라벨</b> — UPS 정가 대비 75–83% 할인 (Expedited 1 lb $43.34 · 20 lb $129.28), 부피 ÷139는 864 in³ 이상부터.</li>
+        <li>UPS Simple Rate · FedEx One Rate 같은 박스 정액은 <b>미국 국내 전용</b> — 한국행 불가.</li></ul>
+      <div class="dts-src">출처: sopoya.com/prices · samsungpost.com/to-kor (÷166, 최소 1 lb) · ktxpress.com/services/outbound ($6.99 + $2/lb, 부피무게 적용·공식 비공개, 타주 밸리 지점) · lulu-newyork.com (규격화물·중량 할증) · USPS Notice 123 (2026-10-04) · IMM Korea · fedex.com 10kg/25kg Box · Pirate Ship SER 안내 (확인 ${CHECKED})</div>`);
+  }
+
+  function keypad(key) {
+    const u = unitNow() === 'in';
+    const isW = key === 'lb';
+    const unitTxt = isW ? (u ? 'lb' : 'kg') : (u ? 'in' : 'cm');
+    const cur = isW ? (u ? st.lb : st.lb * KG) : (u ? st[key] : st[key] * CM);
+    let s = isW ? (cur < 1 ? cur.toFixed(2) : r1(cur)) : (u ? nIn(cur) : String(Math.round(cur)));
+    const names = { L: '가로', W: '세로', H: '높이', lb: '무게' };
+    let fresh = true;
+    openPop(`${names[key]} 입력 (${unitTxt})`, `<div class="dts-kpv" data-dts-kpv>${s}</div><div class="dts-kp">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map(k => `<button data-k="${k}">${k}</button>`).join('')}</div>`, p => {
+      const out = p.querySelector('[data-dts-kpv]');
+      p.addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        if (b.hasAttribute('data-dts-ok')) {
+          const v = parseFloat(s);
+          if (v > 0) {
+            if (isW) st.lb = Math.min(150, Math.max(0.05, u ? v : v / KG));
+            else { st[key] = Math.min(108, Math.max(0.25, u ? v : v / CM)); st.frBox = null; }
+            save(); render();
+          }
+          closePop(); return;
+        }
+        const k = b.getAttribute('data-k'); if (!k) return;
+        if (k === '⌫') s = s.slice(0, -1);
+        else { if (fresh) s = ''; if (k === '.' && s.includes('.')) return; if (s.length < 6) s += k; }
+        fresh = false; out.textContent = s || '0';
+      });
+    }, '<button class="dts-pri" data-dts-ok>확인</button>');
+  }
+
+  function step(key, d) {
+    const u = unitNow() === 'in';
+    if (key === 'lb') {
+      const inc = u ? 0.5 : 0.2 / KG;
+      st.lb = Math.min(150, Math.max(0.25, Math.round((st.lb + d * inc) * 100) / 100));
+    } else {
+      const inc = u ? (st[key] < 2 ? 0.25 : 1) : 1 / CM;
+      let v = st[key] + d * inc;
+      if (u) v = Math.round(v * 4) / 4;
+      st[key] = Math.min(108, Math.max(0.25, v));
+      st.frBox = null;
+    }
+  }
+
+  // ------------------------------------------------------------------ events (send panel)
+  let holdT = null, holdN = 0;
+  function bindPanel(el) {
+    el.addEventListener('click', e => {
+      const t = e.target;
+      let b;
+      if ((b = t.closest('[data-dts-dir]'))) { st.dir = isKR() ? 'us' : 'kr'; st.sel = null; closePop(); render(); const md = el.querySelector('.dts-mid'); if (md) md.scrollTop = 0; return; }
+      if ((b = t.closest('[data-dts-c]'))) { commPop(b.getAttribute('data-dts-c')); return; }
+      if ((b = t.closest('[data-dts-unit]'))) { st[isKR() ? 'unitK' : 'unit'] = b.getAttribute('data-dts-unit'); save(); render(); return; }
+      if ((b = t.closest('[data-dts-kind]'))) { st.kind = b.getAttribute('data-dts-kind'); save(); render(); return; }
+      if ((b = t.closest('[data-dts-tog]'))) { const k = b.getAttribute('data-dts-tog'); st[k] = !st[k]; save(); render(); return; }
+      if ((b = t.closest('[data-dts-cat]'))) { st.cat = b.getAttribute('data-dts-cat'); st.sel = null; save(); render(); return; }
+      if ((b = t.closest('[data-dts-frbox]'))) { const k = b.getAttribute('data-dts-frbox'); const o = FR_BOX[k].outer; Object.assign(st, { L: o[0], W: o[1], H: o[2], frBox: k, sel: 'fr' }); save(); render(); return; }
+      if ((b = t.closest('[data-dts-preset]'))) { const [L, W, H] = b.getAttribute('data-dts-preset').split(',').map(Number); Object.assign(st, { L, W, H, frBox: null }); save(); render(); return; }
+      if ((b = t.closest('[data-dts-scen]'))) {
+        const [L, W, H, lb] = b.getAttribute('data-dts-scen').split(',').map(Number);
+        Object.assign(st, { L, W, H, lb, frBox: null, sel: null }); if (H <= 0.75) st.kind = 'docs'; else if (st.kind === 'docs') st.kind = 'goods';
+        save(); render(); return;
+      }
+      if ((b = t.closest('[data-dts-val]'))) { st.val = +b.getAttribute('data-dts-val'); save(); render(); return; }
+      if ((b = t.closest('[data-dts-key]'))) { keypad(b.getAttribute('data-dts-key')); return; }
+      if ((b = t.closest('[data-dts-quote]'))) { quote(b.getAttribute('data-dts-quote')); return; }
+      if ((b = t.closest('[data-dts-open]'))) { detail(b.getAttribute('data-dts-open')); return; }
+      if ((b = t.closest('[data-dts-info]'))) { info(b.getAttribute('data-dts-info')); return; }
+      if ((b = t.closest('[data-dts-sel]'))) {
+        const id = b.getAttribute('data-dts-sel'), o = cur().find(x => x.id === id);
+        st.sel = id; render();
+        if (o && o.tier === 'quote') quote(id); else detail(id);
+        return;
+      }
+    });
+    const stop = () => { if (holdT) { clearTimeout(holdT); holdT = null; } };
+    el.addEventListener('pointerdown', e => {
+      const b = e.target.closest('[data-dts-step]'); if (!b) return;
+      e.preventDefault();
+      const key = b.getAttribute('data-dts-step'), d = +b.getAttribute('data-d');
+      holdN = 0; step(key, d); save(); render();
+      const rep = () => { holdN++; step(key, d); render(); holdT = setTimeout(rep, holdN > 8 ? 60 : 140); };
+      holdT = setTimeout(rep, 420);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => el.addEventListener(ev, () => { if (holdT) { stop(); save(); } }));
+  }
+
+  // ------------------------------------------------------------------ 🇰🇷 → 🇺🇸 info popups (shown only in the KR direction)
+  const kEms = w => w > 30 ? null : tbl(K_EMS, w <= 2 ? Math.max(0.5, ceilTo(w, 0.25)) : ceilTo(w, 0.5))[1];
+  const kPrem = w => w > 70 ? null : tbl(K_PREM, w <= 20 ? Math.max(0.5, ceilTo(w, 0.5)) : ceilTo(w, 1))[1];
+  const kPkt = w => w > 2 ? null : K_PKT[Math.round(Math.max(0.1, ceilTo(w, 0.1)) * 10) - 1];
+  const kAir = w => { if (w > 20) return null; const r = tbl(K_AIR, Math.max(0.5, ceilTo(w, 0.5))); return r[1] + K_AIR_SUR * Math.round(r[0] / 0.5); };
+  const kSea = w => { if (w > 20) return null; const r = tbl(K_SEA, w <= 1 ? 1 : w <= 2 ? 2 : ceilTo(w, 2)); return r[1] + 500 * r[0]; };
+  const won = v => '₩' + Math.round(v).toLocaleString('en-US');
+  function kInfo(kind) {
+    const head = t => `${t} — ${KR_FLAG}<b>한국</b> → ${US_FLAG}<b>미국</b>`;
+    if (kind === 'methods') {
+      const rows = KOPTS.map(o => { const m = KMD[o.id] || {};
+        return `<tr><td><b>${esc(o.name)}</b></td><td>${m.std ? '<span class="dts-m">표준</span>' : `<b class="dts-gold">${esc(m.k || '')}</b>`}</td><td>${esc(m.rate || '')}</td><td>${esc(m.lim || '')}</td></tr>`; }).join('');
+      const WTS = [0.5, 1, 2, 3, 3.5, 5, 10, 15, 20, 30];
+      const kBodFx = w => w > 67.5 ? null : K_BOD_FX[Math.round(Math.max(0.5, ceilTo(w, 0.5)) / 0.5) - 1];
+      const kBodEms = w => { const v = kEms(w); return v == null ? null : Math.round(v * BOD_EMS_DISC); };
+      const kAzPrem = w => { const v = kPrem(w); return v == null ? null : Math.round(v * AZ_PREM_DISC); };
+      const half = (A, max) => w => w > max ? null : A[Math.round(Math.max(0.5, ceilTo(w, 0.5)) / 0.5) - 1];
+      const kMx = w => w > 30 ? null : K_MX[Math.round((w <= 20 ? Math.max(0.5, ceilTo(w, 0.5)) : ceilTo(w, 1)) / 0.5) - 1];
+      const kAzTf = w => w > 70 ? null : K_AZ_TF[Math.max(1, Math.ceil(w - 1e-9)) - 1];
+      const kDream = w => w <= 35 ? 268000 : null;
+      const kKtx = w => w > 25 ? null : Math.round(Math.max(1, Math.ceil(w - 1e-9)) * KTX_USD_KG * FX);
+      // [name, fn, sub, cond, fast-group]
+      const T = [['우체국 EMS', kEms, '공시 · 관세 선납', 0, 1], ['대행 EMS (−10%)', kBodEms, '보따리·에이투지·도어로', 0, 1], ['EMS 프리미엄 (FedEx)', kPrem, '공시 · 3지역', 0, 1], ['에이투지 EMS 프리미엄 (−5%)', kAzPrem, '대행 · 4–7 영업일', 0, 1],
+        ['KT Express ($12/kg)', kKtx, '국적기 2일 · 25 kg까지 · 달러 환산', 0, 1], ['보따리 FedEx 특송', kBodFx, '대행 · 유류할증료 포함', 0, 1], ['이런택배 역배송', half(K_ERUN, 70), '대행 · 2–3 영업일 · 통관 대행', 0, 1], ['에이투지 특송', half(K_AZ_EX, 70), '대행 · 2–3 영업일', 0, 1], ['맥스 UPS (FBA 같음)', kMx, '대행 · 30 kg까지', 0, 1],
+        ['에이투지 택스프리', kAzTf, '미국 관세 포함 · 1 kg 단위'], ['항공소포', kAir, '요금표 + 추가운송수수료'], ['선편소포 (배)', kSea, '부피무게 없음 · 약 2달'], ['드림백 (NY)', kDream, '35 kg 정액 · 해상 (개인 박스 −₩10,000)'],
+        ['K-Packet', kPkt, '조건부 · 2 kg까지', 1], ['도어로 Economy', half(K_DR_EC, 30), '조건부 · 신규 신청 중단 공지', 1], ['도어로 Tax Free', half(K_DR_TF, 30), '조건부 · 관세 포함', 1]];
+      const fastOnly = T.filter(t => t[4]);
+      const cols = WTS.map(w => { const v = fastOnly.map(t => t[1](w)).filter(x => x != null); return v.length ? Math.min(...v) : null; });
+      const ut = T.map(t => `<tr class="${t[3] ? 'cond' : ''}"><td><b>${esc(t[0])}</b><small>${esc(t[2])}</small></td>${WTS.map((w, i) => { const v = t[1](w); return v == null ? '<td class="na">—</td>' : `<td class="${!t[3] && v === cols[i] ? 'best' : ''}">${won(v)}<small>₩${Math.round(v / w).toLocaleString('en-US')}/kg</small></td>`; }).join('')}</tr>`).join('');
+      openPop(head('📐 요금 방식'), `
+        <div class="dts-stdbox"><span class="dts-m">표준</span> ${esc(KSTD)}<br><small>우체국 EMS·EMS 프리미엄·항공소포·K-Packet 모두 cm³÷6,000 (선편소포만 부피무게 없음). 다른 점은 <b class="dts-gold">금색 볼드</b>.</small></div>
+        <h5>상품별 요금 방식</h5>
+        <table class="dts-tb"><tr><th>상품</th><th>방식</th><th>요금 구조</th><th>한도</th></tr>${rows}</table>
+        <h5>무게별 단가 (실무게 = 청구무게일 때 · 초록 = 빠른 배송(EMS·프리미엄·특송) 중 최저 · 관세 포함·소포·해상·조건부는 따로)</h5>
+        <div class="dts-scroll"><table class="dts-tb dts-ut"><tr><th>방법</th>${WTS.map(w => `<th>${w} kg</th>`).join('')}</tr>${ut}</table></div>
+        <ul>
+          <li>빠른 배송 최저: <b>8 kg까지 KT Express</b>(kg당 $12 ≈ ₩16,080 · 김포 지점으로 직접 발송), <b>8 kg 넘으면 에이투지 EMS 프리미엄(−5%)</b> — KT Express를 안 쓰면 3.5 kg까지 대행 EMS(−10%)</li>
+          <li><b>대행 특송(에이투지·보따리·이런택배·맥스·도어로)</b>은 실무게 기준으로 한 번도 최저가 아님 — 2–3 영업일·픽업·통관 대행이 필요할 때 · 부피도 ÷5,000이라 큰 박스에 불리</li>
+          <li><b>관세가 붙는 물건($100 넘는 선물·상품)</b>: 택스프리는 관세 12.5% 포함 가격 — 다른 방법 + 예상 관세와 비교</li>
+          <li><b>2 kg 이하</b>는 K-Packet이 가장 쌈 (2 kg ₩45,690) — 개인 접수 조건 확인 필요</li>
+          <li><b>급하지 않으면 선편소포</b> — 10 kg ₩48,000, 부피무게 없음 · <b>30 kg 넘게 꽉 찬 짐</b>은 드림백 ₩268,000 (35 kg까지 정액)</li>
+          <li><b>항공소포</b>(느림 · 기간 미공시)는 5.5 kg까지 EMS 프리미엄 공시가보다 쌈 — 6 kg부터는 추가운송수수료(kg당 ₩6,500) 때문에 프리미엄이 쌈</li></ul>
+        <div class="dts-src">출처: 우정사업본부 국제우편요금 (EMS 비서류 2026-07-01 · EMS 프리미엄 2026-04-01 · K-Packet · 국제소포) · 과기부 고시 제2026-46호 · 우체국 EMS 요금조회 실측 · koco-box.com · atoz-express.com · erunexpress.com · ktxpress.com · maxexpress.co.kr · doorro.com 계산기 실측 · cyhds.com 드림백 이용 가격 (확인 ${KR_CHECKED})</div>`);
+    } else if (kind === 'places') {
+      openPop(head('📍 접수 방법'), `
+        <div class="dts-dirbox">한국에서 보내는 분(가족 등)이 접수합니다. 미국행은 <b>우체국 창구에서 관세를 미리 내야(DDP)</b> 하고, 사전 동의서를 작성합니다. 대행사(보따리·에이투지·이런택배·맥스·도어로)는 픽업 후 대신 접수하고 관세를 먼저 청구·대납하거나(보따리·이런택배·맥스) 요금에 포함(택스프리)합니다. KT Express는 김포 지점으로 직접 보냅니다.</div>
+        ${placeHtml(['post', 'online', 'visit', 'call', 'ktx', 'bodd', 'atoz', 'erun', 'max', 'doorro', 'dream'])}
+        <h5>접수 때 준비</h5><ul>
+          <li>받는 분 미국 주소·ZIP·아파트 호수·전화 — 틀리면 통보 없이 반송될 수 있음 (반송 한 달 이상)</li>
+          <li>품목별 영문 품명·개수·가격(USD 권장)·HS코드·원산지 — 선물은 "Gift" 표시</li>
+          <li>관세 + 신고 수수료 결제 (현금·계좌이체·카드)</li></ul>
+        <div class="dts-src">출처: 인터넷우체국 미국행 국제우편 접수 재개 안내 (2025-10-22) · 우체국 EMS 이용계약 안내(비계약 고객 인터넷·앱 접수 EMS 5%p 감액) · 우체국 EMS 요금조회 (방문접수 수수료) (확인 ${KR_CHECKED})</div>`);
+    } else if (kind === 'boxes') {
+      const rows = K_BOX.map(b => { const v = b[1] * b[2] * b[3] / 6000; const lg = Math.max(b[1], b[2], b[3]) * 1 + 2 * (b[1] + b[2] + b[3] - Math.max(b[1], b[2], b[3]));
+        return `<tr><td><b>${b[0]}</b></td><td>${b[1]}×${b[2]}×${b[3]} cm</td><td>${kgs(v)} kg</td><td>${lg} cm${lg > 200 ? ' ⚠' : ''}</td><td><button class="dts-more" data-dts-kbox="${b[1]},${b[2]},${b[3]}">적용</button></td></tr>`; }).join('');
+      openPop(head('📦 박스 — 우체국 1–6호'), `
+        <table class="dts-tb"><tr><th>호수</th><th>크기 (가로×세로×높이)</th><th>부피무게 ÷6,000</th><th>길이+둘레</th><th></th></tr>${rows}</table>
+        <div class="dts-sub">실무게가 부피무게보다 무거우면 부피 손해 없음 · 소포(항공·선편)는 길이 1.05 m · 길이+둘레 2 m 이하 · K-Packet은 세 변 합 90 cm 이하 (1·2호만)</div>
+        <ul>
+          <li>우체국 창구에서 호수별로 판매 — 가격은 창구 확인 (집에 있는 튼튼한 박스도 가능)</li>
+          <li>내용물보다 사방 1–2 cm만 크게 — EMS·프리미엄·항공소포는 빈 공간이 곧 요금</li>
+          <li>선편소포는 부피무게가 없어 큰 박스도 무게만 계산</li></ul>
+        <div class="dts-src">박스 크기: 우체국 소포상자 통용 규격 (4호 41×31×28 cm는 우정사업본부 발표) — 실제 상자는 창구에서 확인</div>`,
+        p => p.addEventListener('click', e => { const b = e.target.closest('[data-dts-kbox]'); if (!b) return; const [L, W, H] = b.getAttribute('data-dts-kbox').split(',').map(Number); Object.assign(st, { L: L / CM, W: W / CM, H: H / CM, frBox: null }); save(); closePop(); render(); }));
+    } else if (kind === 'customs') {
+      openPop(head('🛃 통관 · 금지품목'), `
+        <div class="dts-dirbox"><b>이 화면은 '한국에서 미국으로 보낼 때' 미국 세관(CBP)이 적용하는 수입 기준</b>입니다. 미국 → 한국은 방향 버튼을 눌러 보세요.</div>
+        <h5>관세 (2026-11 현재)</h5>
+        <table class="dts-tb"><tr><th>항목</th><th>내용</th></tr>
+          <tr><td>소액 면세 ($800)</td><td>2025-08-29부터 모든 나라 중단 → 2026-06-24 CBP 규정으로 무기한 중단 (법률상 폐지 2027-07-01)</td></tr>
+          <tr><td>한국산 관세율</td><td><b>12.5%</b> (2026-07-24 Section 301 — MFN과 합쳐 12.5%, MFN이 더 높으면 MFN · 232조 품목 제외). 그전 IEEPA 관세는 2026-02-24 종료, Section 122 10%는 2026-07-24 만료</td></tr>
+          <tr><td>개인 간 선물</td><td><b>$100 이하 면세</b> (bona fide gift · 받는 사람 1명이 같은 날 받는 총액 기준 · 주류·담배·향수 제외 · 넘으면 전체 금액 과세)</td></tr>
+          <tr><td>서류·책</td><td>서류는 관세 없음 · 책은 MFN 무관세·301조 정보자료 제외 (업체 안내)</td></tr></table>
+        <h5>납부 방식</h5>
+        <table class="dts-tb"><tr><th>방법</th><th>누가 · 언제</th></tr>
+          <tr><td>우체국 EMS · 국제소포 · K-Packet</td><td><b>보내는 사람이 접수 때 선납 (DDP)</b> — 물품가액 $2,500 이하 · CBP 승인 대납업체 처리 · 수수료 $1.04 + 관세×10% (VAT 별도, 업체 정리) — 물품 10만 원이면 약 3,250원 (우정사업본부 발표)</td></tr>
+          <tr><td>EMS 프리미엄 · FedEx·DHL·UPS</td><td>기본은 <b>미국 받는 사람</b>이 관세 + 운송사 통관 수수료 (발송인 부담 옵션은 운송사별)</td></tr></table>
+        <h5>우체국 EMS 미국행 금지 · 제한</h5><ul>
+          <li><b>금지</b>: 음식물 · 육가공품(햄·레토르트) · 라면(스프 포함) · 담배 · 위험물 · 복권 · 종자 · 건초 · 식용유(참기름·올리브유) · 모조품 · 향수</li>
+          <li><b>예외</b>: 김치 — 금속 캔에 70% 이하로 담으면 접수</li>
+          <li><b>제한</b>: 음료 · 화장품 · 의약품 · 영양제(비타민·오메가3) · 홍삼·인삼 — 접수 전 확인</li>
+          <li>충전식 배터리: EMS 불가 · 배터리 내장 제품은 EMS 프리미엄 · 보조배터리 단독은 어떤 서비스도 불가</li>
+          <li>EMS 프리미엄 미국행: 화장품 접수 불가 (FDA 검사 강화)</li>
+          <li>장난감·아동용품: 제조·판매자 CPSC 서류 · 식품: FDA 사전신고 (우체국 "미국행 식품사전신고")</li></ul>
+        <h5>받는 분 (미국)</h5><ul>
+          <li>정확한 주소·ZIP·아파트 호수 — 세관 보류 시 통지가 최대 45일 걸릴 수 있고 직접 세관에 연락해야 함</li></ul>
+        <div class="dts-src">출처: Federal Register 2026-12669/12670 (CBP de minimis 무기한 중단) · CBP Gifts · USTR Section 301 (2026-07-24) · 인터넷우체국 미국행 접수 재개 공지 (2025-10-22) · 우정사업본부 DDP 재개 발표 (2025-09-22) · 우체국 EMS 미국 발송조건 정리 (확인 ${KR_CHECKED})</div>`);
+    } else {
+      openPop(head('💡 가이드 · 출처 · 검증'), `
+        <h5>가격 표시 단계</h5>
+        <table class="dts-tb"><tr><th>단계</th><th>뜻</th><th>순위</th></tr>
+          <tr><td><i class="ok">공시</i></td><td>우정사업본부 요금표 그대로 (EMS · EMS 프리미엄 · 항공·선편소포 — 추가운송수수료는 우체국 계산기 실측) · 대행사 공개 계산기 실측 (보따리 · 에이투지 · 이런택배 · 맥스 · KT Express) · 드림백 공개 요금</td><td>반영</td></tr>
+          <tr><td><i class="q">내 견적</i></td><td>이 박스·무게로 ${QUOTE_DAYS}일 이내 받은 견적 (원화)</td><td>반영</td></tr>
+          <tr><td><i class="c">조건부</i></td><td>공개 요금 + 확인 필요 조건 (K-Packet 개인 이용 · 도어로 신규 신청 중단 공지)</td><td>제외</td></tr>
+          <tr><td><i class="n">견적 필요</i></td><td>해외이사·항공화물</td><td>제외</td></tr></table>
+        <h5>상황별 추천</h5><ul>
+          <li><b>2 kg 이하 소형</b>: K-Packet (조건 확인) → 안 되면 대행 EMS(−10%)</li>
+          <li><b>8 kg 이하 · 2일 특송</b>: KT Express — 5 kg $60 (≈₩80,400) · 김포 지점까지 국내 택배로 보내기</li>
+          <li><b>집 앞 픽업이 필요한 3.5 kg 이하</b>: 대행 EMS(−10%) — 직접 접수면 우체국 EMS (인터넷·앱 접수 시 −5%)</li>
+          <li><b>8 kg 초과</b> (픽업이면 3.5 kg 초과): 에이투지 EMS 프리미엄(−5%) — 10 kg ₩150,765 (우체국 정가 ₩158,700 · EMS ₩233,500)</li>
+          <li><b>픽업·통관 대행까지 2–3 영업일</b>: 에이투지 특송 (5 kg ₩133,620) · 이런택배 (₩134,103 · 식품 가능)</li>
+          <li><b>며칠 늦어도 되는 5.5 kg 이하</b>: 항공소포 — 5 kg ₩103,500</li>
+          <li><b>급하지 않은 큰 짐</b>: 선편소포 20 kg ₩84,000 · 30 kg 넘으면 드림백 ₩268,000 (35 kg)</li>
+          <li><b>$100 넘는 물건</b>: 관세 12.5% — 우체국은 보낼 때 선납, 대행사는 먼저 청구, 프리미엄·특송은 받는 사람, 택스프리는 요금에 포함</li></ul>
+        <h5>사실 확인 결과</h5><ul>
+          <li>EMS 비서류 2026-07-01 개편 — 미국 0.5 kg ₩29,500 → <b>₩39,000</b> (추가운송수수료 포함 단일 요금) · 우체국 계산기 5 kg ₩128,500 일치</li>
+          <li>EMS 프리미엄 — 2026-04-01부터 FedEx (우정사업본부 요금 페이지에 "UPS社" 옛 문구 남아 있음) · 미국 = 3지역 (계산기 5 kg ₩109,400 일치)</li>
+          <li>"4 kg부터 EMS 프리미엄이 쌈" (업체 계산기 기준) → 공시표로는 <b>3 kg 초과(3.25 kg)부터</b></li>
+          <li>"5 kg EMS 프리미엄 14–16만 원 · EMS 약 88,000원" (블로그) → 현재 공시 ₩109,400 · ₩128,500 (옛 값)</li>
+          <li>"2025년 12월부터 EMS 재개" (블로그) → 공식: 2025-09-22 재개, 정보자원관리원 화재 중단 후 2025-10-22 재개 (EMS·항공·선편소포·K-Packet)</li>
+          <li>업체 계산기 EMS 1 kg ₩41,400 → 업체 할인가 (공시 ₩46,000의 90%)</li>
+          <li>관세 "약 15%" (2025 안내) → 2026-07-24부터 한국산 12.5%</li>
+          <li>부피무게 — 고시상 항공소포·K-Packet·EMS 비서류만 적용 · 실측: 50×40×40 cm 2 kg → 항공소포 13.5 kg 요금, 선편소포 2 kg 요금</li>
+          <li>항공소포 추가운송수수료 kg당 ₩6,500 (실측 1·2·3·5·10·13.5·20 kg 모두 일치)</li>
+          <li><b>실제 영수증 대조</b> (2026-11-19 미국행 항공소포): 45×32×27 cm · 4,585 g → 부피 6.48 kg → 6.5 kg 청구 · ₩130,250 — 앱 계산과 원 단위까지 일치</li>
+          <li>보따리 계산기의 EMS "정상운임" 0.5–30 kg 60개 구간이 우체국 공시표와 모두 일치 · 보따리 홈페이지의 "미국 5 kg ₩94,600"은 현재 계산기(FedEx ₩119,800 · EMS ₩115,650)와 달라 옛 값</li>
+          <li>FedEx 한국 정가(International Priority, 뉴욕 F존): 5 kg ₩281,200 + 유류할증료 — EMS 프리미엄의 약 2.6배 → 계약 없이는 의미 없어 목록에서 뺌 (대행사 이용)</li>
+          <li>에이투지 계산기: EMS 0.5–30 kg = 공시 × 0.9 · EMS 프리미엄 0.5–70 kg 140개 구간 = 공시 × 0.95 (모두 일치) · 가격표 "부가세 미포함" 표기</li>
+          <li>도어로 계산기: "Economy Beta" = EMS 프리미엄 공시가 그대로 (60개 구간 일치) · EMS(10% 할인)는 100원 단위 · 선편은 우체국 선편소포보다 몇 배 비싸고 EMS보다도 비싸 제외 · 30 kg까지만 계산</li>
+          <li>맥스익스프레스: 홈페이지 요금표 "미국 5 kg UPS ₩98,400"은 계산기(₩137,700 · 2026-10-15 업데이트)와 달라 옛 값 · 일반운송과 FBA 같은 금액</li>
+          <li>KT Express: 온라인견적이 단가 API에서 받는 값은 kg당 $12 · 부피 할인 0% — FAQ의 "$11/KG · 부피무게 50%"는 옛 안내 · 25 kg까지 견적</li>
+          <li>이런택배: 역배송 계산기의 원화 결제금액 실측 (업체 환율 ₩1,300 · 0.5 kg 단위 · 30 kg 넘으면 0.5 kg당 ₩7,536)</li>
+          <li>드림백 한국발: 이용 가격 NY ₩268,000 (LA ₩239,000) · 개인 가방·박스 −₩10,000 · 35 kg — 옛 블로그 "뉴욕 24만 8천원"은 옛 값</li></ul>
+        <h5>출처</h5><ul class="dts-srcs">
+          <li>우정사업본부 국제우편요금 (EMS · EMS프리미엄 · K-Packet · 국제소포 · 요금지역별 국가명) · 과기부 고시 제2026-46호 (2026-07-01)</li>
+          <li>우체국 EMS 배달소요일/요금조회 (미국, 2026-11-25 실측) · 인터넷우체국 공지 (2025-10-22) · 우체국 EMS 이용계약 안내</li>
+          <li>koco-box.com (보따리) · atoz-express.com (에이투지) · erunexpress.com (이런택배) · ktxpress.com (KT Express) · maxexpress.co.kr (맥스) · doorro.com (도어로) 계산기 2026-11-25 실측 · cyhds.com 드림백 이용 가격·절차 · FedEx 대한민국 수출 요금 2026 (IP · IF)</li>
+          <li>Federal Register 2026-12669·12670 · CBP · USTR Section 301 · 에이투지·보따리 미국 발송 가이드 (교차 확인용)</li></ul>`);
+    }
+  }
+  // ------------------------------------------------------------------ standalone web page (GitHub Pages)
+  function mountWeb() {
+    injectCss();
+    const send = document.createElement('div'); send.id = 'dts-send'; send.style.display = 'flex';
+    document.body.append(send);
+    bindPanel(send);
+    root = send; st.dir = 'us'; st.sel = null; render();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountWeb); else mountWeb();
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+  window.__dtSend = { version: VER, compute: () => compute(), render: () => render(), state: st };
+})();
+
+</script>
+</body></html>
